@@ -3,3 +3,4 @@
 black
 flake8
 pip-tools
+pre-commit
