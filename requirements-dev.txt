@@ -1,0 +1,5 @@
+-r requirements.txt
+-r requirements-test.txt
+black
+flake8
+pip-tools

@@ -1,0 +1,6 @@
+-r requirements.txt
+pyflakes
+requests_mock
+codecov
+coverage
+pytest
