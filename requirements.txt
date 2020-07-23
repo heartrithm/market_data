@@ -10,11 +10,12 @@ certifi==2020.4.5.2       # via requests
 chardet==3.0.4            # via requests
 idna==2.9                 # via requests
 influxdb==5.3.0           # via -r requirements.in (line 3)
+loguru==0.5.1             # via -r requirements.in (line 4)
 msgpack==0.6.1            # via influxdb
 python-dateutil==2.8.1    # via arrow, influxdb
 pytz==2020.1              # via influxdb
-ratelimit==2.2.1          # via -r requirements.in (line 4)
-requests==2.23.0          # via -r requirements.in (line 5), exchanges, influxdb
+ratelimit==2.2.1          # via -r requirements.in (line 5)
+requests==2.23.0          # via -r requirements.in (line 6), exchanges, influxdb
 six==1.15.0               # via influxdb, python-dateutil
 ujson==3.0.0              # via exchanges
 urllib3==1.25.9           # via requests

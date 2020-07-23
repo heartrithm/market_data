@@ -18,12 +18,12 @@ repos:
   rev: 3.8.3
   hooks:
     - id: flake8
-- repo: local
-  hooks:
-    - id: antipattern-checker
-      name: antipatter-checker
-      language: script
-      #files: \.py go
-      exclude: scripts/
-      types: [python]
-      entry: scripts/antipattern-checker.sh
+#- repo: local
+#  hooks:
+#    - id: antipattern-checker
+#      name: antipatter-checker
+#      language: script
+#      #files: \.py go
+#      exclude: scripts/
+#      types: [python]
+#      entry: scripts/antipattern-checker.sh

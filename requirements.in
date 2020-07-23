@@ -1,5 +1,6 @@
 -e git+https://github.com/heartrithm/exchanges.git#egg=exchanges
 arrow
 influxdb
+loguru
 ratelimit
 requests
