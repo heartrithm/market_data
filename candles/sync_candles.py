@@ -7,6 +7,9 @@ import arrow
 import datetime
 import math
 import os
+import sys
+
+IS_PYTEST = "pytest" in sys.modules
 
 
 def get_sync_candles_class(exchange, symbol, interval, start=None, end=None, force_range=None):
@@ -178,7 +181,7 @@ class SyncBitfinexCandles(BaseSyncCandles):
 
     DEFAULT_SYNC_DAYS = 90
     API_MAX_RECORDS = 10000
-    API_CALLS_PER_MIN = 100000 if os.getenv("_", "").endswith("pytest") else 60
+    API_CALLS_PER_MIN = 100000 if IS_PYTEST else 60
     EXCHANGE = "bitfinex"
     PERIODS = [f"p{n}" for n in range(2, 31)]
 
