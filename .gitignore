@@ -4,3 +4,5 @@
 .coverage
 .pytest_cache
 __pycache__
+.python-version
+src

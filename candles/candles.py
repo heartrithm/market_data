@@ -25,7 +25,7 @@ class Candles(object):
             port=os.getenv("CANDLES_DB_PORT", "8086"),
             timeout=self.INFLUX_TIMEOUT,
         )
-        if os.getenv("_").endswith("pytest"):
+        if os.getenv("_", "").endswith("pytest"):
             db = "test_" + self.exchange
         else:
             db = os.getenv("CANDLES_DB_PREFIX", "") + self.exchange
