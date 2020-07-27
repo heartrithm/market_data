@@ -114,7 +114,6 @@ class TestCandles:
         start = 1590889920.0
         end = 1590891120.0
         low, high = influx.get_lowhigh()
-        breakpoint()
         assert low > 0.0 and high > 0.0
 
         # exercise code path for start/end dates specified in each combination
