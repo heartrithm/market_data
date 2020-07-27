@@ -7,6 +7,9 @@ import arrow
 import datetime
 import math
 import os
+import sys
+
+IS_PYTEST = "pytest" in sys.modules
 
 
 def get_sync_candles_class(exchange, symbol, interval, start=None, end=None, force_range=None):
@@ -36,11 +39,11 @@ class BaseSyncCandles(object):
         self.influx_client = Candles(self.EXCHANGE, self.symbol, self.interval, create_if_missing=True)
         self.client = self.api_client()
 
-    def api_client():
+    def api_client(self):
         "Abstract Method: must be implemented in the child class, and populate self.client " ""
         raise NotImplementedError
 
-    def call_api():
+    def call_api(self):
         "Abstract Method: must be implemented in the child class " ""
         raise NotImplementedError
 
@@ -70,7 +73,7 @@ class BaseSyncCandles(object):
         new_start = self.start
         new_end = self.end
         delta_mins = 0
-        earliest, latest = self.get_earliest_latest_timestamps_in_db()
+        _, latest = self.get_earliest_latest_timestamps_in_db()
 
         if latest == 0:  # no existing data
             delta_mins = abs((self.end - self.start)) / 60
@@ -178,39 +181,9 @@ class SyncBitfinexCandles(BaseSyncCandles):
 
     DEFAULT_SYNC_DAYS = 90
     API_MAX_RECORDS = 10000
-    API_CALLS_PER_MIN = 100000 if os.getenv("_").endswith("pytest") else 60
+    API_CALLS_PER_MIN = 100000 if IS_PYTEST else 60
     EXCHANGE = "bitfinex"
-    PERIODS = [
-        "p2",
-        "p3",
-        "p4",
-        "p5",
-        "p6",
-        "p7",
-        "p8",
-        "p9",
-        "p10",
-        "p11",
-        "p12",
-        "p13",
-        "p14",
-        "p15",
-        "p16",
-        "p17",
-        "p18",
-        "p19",
-        "p20",
-        "p21",
-        "p22",
-        "p23",
-        "p24",
-        "p25",
-        "p26",
-        "p27",
-        "p28",
-        "p29",
-        "p30",
-    ]
+    PERIODS = [f"p{n}" for n in range(2, 31)]
 
     def api_client(self):
         if not self.client:

@@ -2,7 +2,10 @@ from decimal import Decimal as D
 from influxdb import InfluxDBClient
 from loguru import logger
 import arrow
+import sys
 import os
+
+IS_PYTEST = "pytest" in sys.modules
 
 
 class Candles(object):
@@ -25,7 +28,7 @@ class Candles(object):
             port=os.getenv("CANDLES_DB_PORT", "8086"),
             timeout=self.INFLUX_TIMEOUT,
         )
-        if os.getenv("_").endswith("pytest"):
+        if IS_PYTEST:
             db = "test_" + self.exchange
         else:
             db = os.getenv("CANDLES_DB_PREFIX", "") + self.exchange
