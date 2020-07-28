@@ -14,12 +14,6 @@ COMMANDS = ["candles"]
 @click.option("--interval", type=str, default="1m", help="1m for 1m candle data")
 @click.option("--start", type=str, default=None, help="any string python-arrow supports")
 @click.option("--end", type=str, default=None, help="any string python-arrow supports")
-@click.option(
-    "--force-range",
-    type=bool,
-    default=False,
-    help="ignore all sync logic regarding existing data, and sync only the specified ranges",
-)
 def run(*args, **options):  # pragma: no cover
     if options["command"] == "candles":
         exchange = options["exchange"].lower()
