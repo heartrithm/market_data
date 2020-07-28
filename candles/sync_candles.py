@@ -164,8 +164,9 @@ class BaseSyncCandles(object):
         # and this one will grab latests_in_db->now.
         if fetch_again:
             logger.debug("Fetching again, this time from the latest in the db, to now()")
-            start = fetch_again
-            end = datetime.datetime.now().timestamp()
+            self.start = fetch_again
+            self.end = datetime.datetime.now().timestamp()
+            steps, start, end, _ = self.get_iterations_for_range(self.API_MAX_RECORDS)
             time_steps = list(self.timestamp_ranges(start, end, steps))
             self.do_fetch(time_steps, start, end, endpoint, extra_params, extra_tags)
 
