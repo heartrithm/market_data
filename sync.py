@@ -23,7 +23,6 @@ def run(*args, **options):  # pragma: no cover
             interval=options["interval"],
             start=options["start"],
             end=options["end"],
-            force_range=options["force_range"],
         )
         client.pull_data()
 
