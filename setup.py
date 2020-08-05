@@ -5,4 +5,5 @@ setup(
     version="0.0.2",
     description="Library and CLI for syncing crypto exchange data (candles, etc) to influxdb",
     packages=find_packages(),
+    install_requires=["arrow", "influxdb", "loguru", "ratelimit", "requests"],
 )
