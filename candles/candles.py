@@ -84,7 +84,7 @@ class Candles(object):
         """
         from candles.sync_candles import get_sync_candles_class
 
-        query = f"SELECT {query} FROM candles_1m WHERE symbol=$symbol"
+        query = "SELECT {} FROM candles_{} WHERE symbol=$symbol".format(query, self.interval)
         params = {"symbol": self.symbol}
 
         if fetch_latest:
@@ -106,7 +106,7 @@ class Candles(object):
     def get_lowhigh(self, start=None, end=None):
         """ Returns (low, high) for all candles in the provided date range """
         # date comparison queries in influx must be sent in nanos:
-        query = "SELECT low, high FROM candles_1m WHERE symbol=$symbol"
+        query = "SELECT low, high FROM candles_{} WHERE symbol=$symbol".format(self.interval)
         params = {"symbol": self.symbol}
         if start or end:
             q_where = query + " AND "
@@ -127,7 +127,9 @@ class Candles(object):
     def get_percentile(self, field, percentile, start=None, end=None):
         """ Returns $percentile of the $field price for all candles in the provided date range """
         params = {"symbol": self.symbol}
-        query = f"SELECT PERCENTILE({field}, {percentile}) FROM candles_1m WHERE symbol=$symbol"
+        query = "SELECT PERCENTILE({}, {}) FROM candles_{} WHERE symbol=$symbol".format(
+            field, percentile, self.interval
+        )
         if start or end:
             q_where = query + " AND "
         else:

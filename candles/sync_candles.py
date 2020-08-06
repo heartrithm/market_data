@@ -50,7 +50,7 @@ class BaseSyncCandles(object):
             isn't one
         """
 
-        query = "SELECT open,time FROM candles_1m WHERE symbol=$symbol"
+        query = "SELECT open,time FROM candles_{} WHERE symbol=$symbol".format(self.interval)
         params = {"symbol": self.symbol}
 
         latest = self.influx_client.query(query + " ORDER BY time DESC LIMIT 1", bind_params=params)
@@ -107,7 +107,7 @@ class BaseSyncCandles(object):
             assert c[2] >= c[4], "Close price must be >= the high price."
             out.append(
                 {
-                    "measurement": "candles_1m",
+                    "measurement": "candles_" + self.interval,
                     "tags": tags,
                     "time": c[0],
                     "fields": {
@@ -207,7 +207,7 @@ class SyncBitfinexCandles(BaseSyncCandles):
 
     def get_earliest_latest_timestamps_in_db(self):
         """ Overriding base class, as we need to include the period for bitfinex lending data) """
-        query = f"SELECT open,time FROM candles_1m WHERE symbol='{self.symbol}'"
+        query = "SELECT open,time FROM candles_{} WHERE symbol='{}'".format(self.interval, self.symbol)
 
         if self.symbol.startswith("f"):
             latest = self.influx_client.query(
