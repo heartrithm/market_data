@@ -155,6 +155,12 @@ class BaseSyncCandles(object):
             self.end = now.timestamp()
 
         steps, start, end, fetch_again = self.get_iterations_for_range(self.API_MAX_RECORDS)
+        if start > end:
+            logger.debug(
+                f"Nothing to sync, as we have already have {arrow.get(start).isoformat()} in the database, "
+                f"and end date {arrow.get(end).isoformat()} was selected."
+            )
+            return
         logger.debug("Using the following time ranges to complete the sync: {} to {}".format(start, end))
 
         time_steps = list(self.timestamp_ranges(start, end, steps))
