@@ -11,10 +11,10 @@ import sys
 IS_PYTEST = "pytest" in sys.modules
 
 
-def get_sync_candles_class(exchange, symbol, interval, start=None, end=None):
+def get_sync_candles_class(exchange, symbol, interval, start=None, end=None, host=None):
     """ Abstraction layer that returns an instance of the right SyncCandles class """
     if exchange.lower() == "bitfinex":
-        return SyncBitfinexCandles(symbol, interval, start, end)
+        return SyncBitfinexCandles(symbol, interval, start, end, host)
 
 
 class BaseSyncCandles(object):
