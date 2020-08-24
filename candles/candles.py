@@ -19,15 +19,20 @@ class Candles(object):
 
     INFLUX_TIMEOUT = 60
 
-    def __init__(self, exchange, symbol, interval, create_if_missing=False):
+    def __init__(self, exchange, symbol, interval, create_if_missing=False, host=None):
         self.exchange = exchange.lower()
         self.symbol = symbol
         self.interval = interval
-        self.client = InfluxDBClient(
-            host=os.getenv("CANDLES_DB_HOST", "localhost"),
-            port=os.getenv("CANDLES_DB_PORT", "8086"),
-            timeout=self.INFLUX_TIMEOUT,
-        )
+        if host:
+            self.client = InfluxDBClient(
+                host=host, port=os.getenv("CANDLES_DB_PORT", "8086"), timeout=self.INFLUX_TIMEOUT,
+            )
+        else:
+            self.client = InfluxDBClient(
+                host=os.getenv("CANDLES_DB_HOST", "localhost"),
+                port=os.getenv("CANDLES_DB_PORT", "8086"),
+                timeout=self.INFLUX_TIMEOUT,
+            )
         if IS_PYTEST:
             db = "test_" + self.exchange
         else:
