@@ -26,7 +26,7 @@ class BaseSyncCandles(object):
     DEFAULT_SYNC_DAYS = 90
     start = end = client = None
 
-    def __init__(self, symbol, interval, start=None, end=None):
+    def __init__(self, symbol, interval, start=None, end=None, host=None):
         self.symbol = symbol
         self.interval = interval
         if start:
@@ -34,7 +34,7 @@ class BaseSyncCandles(object):
         if end:
             self.end = arrow.get(end).float_timestamp
 
-        self.influx_client = Candles(self.EXCHANGE, self.symbol, self.interval, create_if_missing=True)
+        self.influx_client = Candles(self.EXCHANGE, self.symbol, self.interval, create_if_missing=True, host=host)
         self.client = self.api_client()
 
     def api_client(self):
