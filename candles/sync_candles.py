@@ -1,4 +1,6 @@
 from exchanges.apis.bitfinex import BitfinexApi
+from exchanges.apis.binance import BinanceApi
+
 from ratelimit import limits, sleep_and_retry
 from candles.candles import Candles
 from loguru import logger
@@ -8,6 +10,9 @@ import datetime
 import math
 import sys
 
+# sys.path.insert(0, "../exchanges/")
+# from exchanges.apis.binance import BinanceApi
+
 IS_PYTEST = "pytest" in sys.modules
 
 
@@ -15,6 +20,8 @@ def get_sync_candles_class(exchange, symbol, interval, start=None, end=None, hos
     """ Abstraction layer that returns an instance of the right SyncCandles class """
     if exchange.lower() == "bitfinex":
         return SyncBitfinexCandles(symbol, interval, start, end, host)
+    if exchange.lower() == "binance":
+        return SyncBinanceCandles(symbol, interval, start, end, host)
 
 
 class BaseSyncCandles(object):
@@ -56,8 +63,9 @@ class BaseSyncCandles(object):
         latest = self.influx_client.query(query + " ORDER BY time DESC LIMIT 1", bind_params=params)
         earliest = self.influx_client.query(query + " ORDER BY time ASC LIMIT 1", bind_params=params)
 
+        print(earliest, latest)
         earliest = arrow.get(list(earliest)[0][0]["time"] / 1000).float_timestamp if earliest else 0
-        latest = arrow.get(list(latest)[0][0]["time" / 1000]).float_timestamp if latest else 0
+        latest = arrow.get(list(latest)[0][0]["time"] / 1000).float_timestamp if latest else 0
         return earliest, latest
 
     def get_iterations_for_range(self, batch_limit):
@@ -101,21 +109,24 @@ class BaseSyncCandles(object):
             tags.update(extra_tags)
 
         for c in candles:
-            """  [ MTS, OPEN, CLOSE, HIGH, LOW, VOLUME ] """
-            assert c[2] <= c[3], "Close price must be <= than the high."
-            assert c[4] <= c[3], "Low price must  be <= the high price."
-            assert c[2] >= c[4], "Close price must be >= the high price."
+            _open = c[self.candle_order["open"]]
+            _high = c[self.candle_order["high"]]
+            _low = c[self.candle_order["low"]]
+            _close = c[self.candle_order["close"]]
+            _volume = c[self.candle_order["volume"]]
+            assert _open <= _high, f"Open price must be <= than the high: {c}"
+            assert _low <= _high, f"Low price must  be <= the high price {c}"
             out.append(
                 {
                     "measurement": "candles_" + self.interval,
                     "tags": tags,
                     "time": c[0],
                     "fields": {
-                        "open": float(c[1]),
-                        "close": float(c[2]),
-                        "high": float(c[3]),
-                        "low": float(c[4]),
-                        "volume": float(c[5]),
+                        "open": float(_open),
+                        "close": float(_close),
+                        "high": float(_high),
+                        "low": float(_low),
+                        "volume": float(_volume),
                     },
                 }
             )
@@ -138,7 +149,7 @@ class BaseSyncCandles(object):
             yield (start + diff * i).timestamp
         yield end.timestamp
 
-    def sync(self, endpoint, extra_params={}, extra_tags=None):
+    def sync(self, endpoint, extra_params={}, extra_tags=None, start_format=None, end_format=None):
         """ Pulls data from the exchange, and assumes it takes params: limit, start, end
             extra_params: will be added to each exchange request
             extra_tags: added to each measurement written to influx
@@ -164,7 +175,9 @@ class BaseSyncCandles(object):
         logger.debug("Using the following time ranges to complete the sync: {} to {}".format(start, end))
 
         time_steps = list(self.timestamp_ranges(start, end, steps))
-        self.do_fetch(time_steps, start, end, endpoint, extra_params, extra_tags)
+        self.do_fetch(
+            time_steps, start, end, endpoint, extra_params, extra_tags, start_format=start_format, end_format=end_format
+        )
 
         # Date requested was before latest in the db, so the first fetch grabbed start->earliest_in_db,
         # and this one will grab latests_in_db->now.
@@ -176,9 +189,12 @@ class BaseSyncCandles(object):
             time_steps = list(self.timestamp_ranges(start, end, steps))
             self.do_fetch(time_steps, start, end, endpoint, extra_params, extra_tags)
 
-    def do_fetch(self, time_steps, start, end, endpoint, extra_params, extra_tags):
+    def do_fetch(self, time_steps, start, end, endpoint, extra_params, extra_tags, start_format=None, end_format=None):
         for start, end in zip(time_steps, time_steps[1:]):
             params = {"limit": self.API_MAX_RECORDS, "start": start * 1000, "end": end * 1000}
+            if start_format and end_format:
+                params = {"limit": self.API_MAX_RECORDS, start_format: start * 1000, end_format: end * 1000}
+
             if extra_params:
                 params.update(extra_params)
 
@@ -192,8 +208,39 @@ class BaseSyncCandles(object):
                 )
             )
 
-            res = self.call_api(2, endpoint, params)
+            res = self.call_api(endpoint, params)
             self.write_candles(res, extra_tags)
+
+
+class SyncBinanceCandles(BaseSyncCandles):
+    """ Sync candles for Binance """
+
+    DEFAULT_SYNC_DAYS = 90
+    API_MAX_RECORDS = 1000
+    API_CALLS_PER_MIN = 100000 if IS_PYTEST else 1200
+    EXCHANGE = "binance"
+    candle_order = {"open": 1, "high": 2, "low": 3, "close": 4, "volume": 5}
+
+    def api_client(self):
+        if not self.client:
+            # Cache/reuse the client object so that sessions are re-used, which enables HTTP Keep-Alive
+            self.client = BinanceApi()
+        return self.client
+
+    @sleep_and_retry
+    @limits(calls=API_CALLS_PER_MIN, period=60)  # calls per minute
+    def call_api(self, endpoint, params):
+        """ Binance specific rate limits and brequest """
+        return self.client.brequest(api_version=3, endpoint=endpoint, params=params)
+
+    def pull_data(self):
+        endpoint = "klines"
+        self.sync(
+            endpoint,
+            extra_params={"interval": self.interval, "symbol": self.symbol},
+            start_format="startTime",
+            end_format="endTime",
+        )
 
 
 class SyncBitfinexCandles(BaseSyncCandles):
@@ -204,6 +251,7 @@ class SyncBitfinexCandles(BaseSyncCandles):
     API_CALLS_PER_MIN = 100000 if IS_PYTEST else 60
     EXCHANGE = "bitfinex"
     PERIODS = [f"p{n}" for n in range(2, 31)]
+    candle_order = {"open": 1, "close": 2, "high": 3, "low": 4, "volume": 5}
 
     def api_client(self):
         if not self.client:
@@ -232,9 +280,9 @@ class SyncBitfinexCandles(BaseSyncCandles):
 
     @sleep_and_retry
     @limits(calls=API_CALLS_PER_MIN, period=60)  # calls per minute
-    def call_api(self, api_version, endpoint, params):
+    def call_api(self, endpoint, params):
         """ Bitfinex specific rate limits and brequest """
-        return self.client.brequest(api_version=api_version, endpoint=endpoint, params=params)
+        return self.client.brequest(api_version=2, endpoint=endpoint, params=params)
 
     def pull_data(self):
         if self.symbol.startswith("f"):
