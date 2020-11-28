@@ -10,9 +10,6 @@ import datetime
 import math
 import sys
 
-# sys.path.insert(0, "../exchanges/")
-# from exchanges.apis.binance import BinanceApi
-
 IS_PYTEST = "pytest" in sys.modules
 
 
