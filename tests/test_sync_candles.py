@@ -90,6 +90,26 @@ class TestCandles:
             res = influx.get("*", start=start, end=end)
             assert res is not None
 
+    def test_binance_get(self):
+        exchange = "binance"
+        symbol = "ETHUSDT"
+        interval = "1m"
+        influx = Candles(exchange, symbol, interval)
+
+        start = 1590889920.0
+        end = 1590891120.0
+        fh = open("tests/data/lowhigh_candles.json", "r")
+        with mock() as m:
+            m.register_uri("GET", re.compile(r"localhost:8086"), text=fh.read())
+            res = influx.get("*")
+            assert res is not None
+            res = influx.get("*", start=start)
+            assert res is not None
+            res = influx.get("*", end=end)
+            assert res is not None
+            res = influx.get("*", start=start, end=end)
+            assert res is not None
+
     def test_get_percentile(self):
         """ Test percentile query """
         exchange = "bitfinex"

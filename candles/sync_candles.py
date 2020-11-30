@@ -31,6 +31,7 @@ class BaseSyncCandles(object):
     start = end = client = None
 
     def __init__(self, symbol, interval, start=None, end=None, host=None):
+        self.candle_order = None
         self.symbol = symbol
         self.interval = interval
         if start:
@@ -105,25 +106,20 @@ class BaseSyncCandles(object):
             tags.update(extra_tags)
 
         for c in candles:
-            _open = c[self.candle_order["open"]]
-            _high = c[self.candle_order["high"]]
-            _low = c[self.candle_order["low"]]
-            _close = c[self.candle_order["close"]]
-            _volume = c[self.candle_order["volume"]]
-            assert _open <= _high, f"Open price must be <= than the high: {c}"
-            assert _low <= _high, f"Low price must  be <= the high price {c}"
+            _open = float(c[self.candle_order["open"]])
+            _high = float(c[self.candle_order["high"]])
+            _low = float(c[self.candle_order["low"]])
+            _close = float(c[self.candle_order["close"]])
+            _volume = float(c[self.candle_order["volume"]])
+            assert _low <= _high, f"Low price must be <= the High price. Candle: {c}"
+            assert _low <= _close, f"Low price must be <= the Close price. Candle: {c}"
+            assert _high >= _open, f"High price must be <= the Open price. Candle: {c}"
             out.append(
                 {
                     "measurement": "candles_" + self.interval,
                     "tags": tags,
                     "time": c[0],
-                    "fields": {
-                        "open": float(_open),
-                        "close": float(_close),
-                        "high": float(_high),
-                        "low": float(_low),
-                        "volume": float(_volume),
-                    },
+                    "fields": {"open": _open, "high": _high, "low": _low, "close": _close, "volume": _volume},
                 }
             )
 
@@ -215,7 +211,6 @@ class SyncBinanceCandles(BaseSyncCandles):
     API_MAX_RECORDS = 1000
     API_CALLS_PER_MIN = 100000 if IS_PYTEST else 1200
     EXCHANGE = "binance"
-    candle_order = {"open": 1, "high": 2, "low": 3, "close": 4, "volume": 5}
 
     def api_client(self):
         if not self.client:
@@ -230,6 +225,7 @@ class SyncBinanceCandles(BaseSyncCandles):
         return self.client.brequest(api_version=3, endpoint=endpoint, params=params)
 
     def pull_data(self):
+        self.candle_order = {"open": 1, "high": 2, "low": 3, "close": 4, "volume": 5}
         endpoint = "klines"
         self.sync(
             endpoint,
@@ -247,7 +243,6 @@ class SyncBitfinexCandles(BaseSyncCandles):
     API_CALLS_PER_MIN = 100000 if IS_PYTEST else 60
     EXCHANGE = "bitfinex"
     PERIODS = [f"p{n}" for n in range(2, 31)]
-    candle_order = {"open": 1, "close": 2, "high": 3, "low": 4, "volume": 5}
 
     def api_client(self):
         if not self.client:
@@ -281,6 +276,7 @@ class SyncBitfinexCandles(BaseSyncCandles):
         return self.client.brequest(api_version=2, endpoint=endpoint, params=params)
 
     def pull_data(self):
+        self.candle_order = {"open": 1, "close": 2, "high": 3, "low": 4, "volume": 5}
         if self.symbol.startswith("f"):
             return self.pull_data_funding()
         else:
