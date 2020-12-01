@@ -179,7 +179,16 @@ class BaseSyncCandles(object):
             self.end = datetime.datetime.now().timestamp()
             steps, start, end, _ = self.get_iterations_for_range(self.API_MAX_RECORDS)
             time_steps = list(self.timestamp_ranges(start, end, steps))
-            self.do_fetch(time_steps, start, end, endpoint, extra_params, extra_tags)
+            self.do_fetch(
+                time_steps,
+                start,
+                end,
+                endpoint,
+                extra_params,
+                extra_tags,
+                start_format=start_format,
+                end_format=end_format,
+            )
 
     def do_fetch(self, time_steps, start, end, endpoint, extra_params, extra_tags, start_format=None, end_format=None):
         for start, end in zip(time_steps, time_steps[1:]):
