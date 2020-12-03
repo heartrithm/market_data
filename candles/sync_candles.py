@@ -219,10 +219,9 @@ class BaseSyncCandles(object):
                     "Did not receive any candles from the start of the requested range!"
                     " Did it exist on the exchange at the start time?"
                 )
-                print(res[0][0], start * 1000)
                 assert res[0][0] == start * 1000, (
                     "Did not receive a first candle matching the start of the requested range!"
-                    " Did it exist on the exchange at the start time?"
+                    f" Did it exist on the exchange at the start time? Got: {res[0][0]} wanted: {start * 1000}"
                 )
             first_iteration = False
             self.write_candles(res, extra_tags)
