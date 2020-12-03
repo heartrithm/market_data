@@ -22,7 +22,9 @@ def get_sync_candles_class(exchange, symbol, interval, start=None, end=None, hos
 
 
 class BaseSyncCandles(object):
-    """ Base class for syncing candles """
+    """ Base class for syncing candles
+        NOTE candles must come in oldest->newest order. Thanks.
+    """
 
     BIN_SIZES = {"1m": 1, "1h": 60, "1d": 1440}
     API_MAX_RECORDS = 10000
@@ -191,6 +193,7 @@ class BaseSyncCandles(object):
             )
 
     def do_fetch(self, time_steps, start, end, endpoint, extra_params, extra_tags, start_format=None, end_format=None):
+        first_iteration = True
         for start, end in zip(time_steps, time_steps[1:]):
             params = {"limit": self.API_MAX_RECORDS, "start": start * 1000, "end": end * 1000}
             if start_format and end_format:
@@ -210,6 +213,18 @@ class BaseSyncCandles(object):
             )
 
             res = self.call_api(endpoint, params)
+            # ensure at least the first candle exists, to avoid making a bunch of pointless API calls
+            if first_iteration:
+                assert res, (
+                    "Did not receive any candles from the start of the requested range!"
+                    " Did it exist on the exchange at the start time?"
+                )
+                print(res[0][0], start * 1000)
+                assert res[0][0] == start * 1000, (
+                    "Did not receive a first candle matching the start of the requested range!"
+                    " Did it exist on the exchange at the start time?"
+                )
+            first_iteration = False
             self.write_candles(res, extra_tags)
 
 
@@ -295,7 +310,7 @@ class SyncBitfinexCandles(BaseSyncCandles):
         assert self.symbol.startswith("t"), "Bitfinex trading symbols must start with 't'"
 
         endpoint = "candles/trade:{interval}:{symbol}/hist".format(interval=self.interval, symbol=self.symbol)
-        self.sync(endpoint)
+        self.sync(endpoint, extra_params={"sort": 1})  # get oldest candles first
         return True
 
     def pull_data_funding(self):

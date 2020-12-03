@@ -29,7 +29,7 @@ class TestSyncBitfinexCandles:
         funding_candles = open("tests/data/candles_fUSD.json", "r").read()
         with freeze_time(arrow.get(end).datetime):
             # load all data in, insert in influx, verify rows count
-            client = get_sync_candles_class(exchange=exchange, symbol=symbol, interval=interval)
+            client = get_sync_candles_class(exchange=exchange, symbol=symbol, interval=interval, start=start)
             with mock() as m:
                 m.register_uri(
                     "GET", re.compile(r"api-pub.bitfinex.com\/v2.*"), text=funding_candles,
