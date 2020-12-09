@@ -219,12 +219,6 @@ class BaseSyncCandles(object):
                     "Did not receive any candles from the start of the requested range!"
                     " Did it exist on the exchange at the start time?"
                 )
-                # check we got a candle within 10 mins of the start date (sometimes exchanges don't have exact
-                # minute boundaries
-                assert abs(res[0][0] - (start * 1000)) < 600000, (
-                    "Did not receive a first candle within 10 mins of the start of the requested range!"
-                    f" Did it exist on the exchange at the start time? Got: {res[0][0]} wanted: {start * 1000}"
-                )
             first_iteration = False
             self.write_candles(res, extra_tags)
 
