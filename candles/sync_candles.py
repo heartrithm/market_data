@@ -12,9 +12,6 @@ import math
 import sys
 
 IS_PYTEST = "pytest" in sys.modules
-import logging
-
-logging.basicConfig(level=logging.DEBUG)
 
 
 def get_sync_candles_class(exchange, symbol, interval, start=None, end=None, host=None):
