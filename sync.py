@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 from candles.sync_candles import get_sync_candles_class
+from loguru import logger
 import click
+import os
 
 COMMANDS = ["candles"]
+logger.level = os.getenv("LOG_LEVEL", "WARNING")
 
 
 @click.command()
