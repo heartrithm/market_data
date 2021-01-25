@@ -226,7 +226,6 @@ class BaseSyncCandles(object):
         end_format="end",
         timestamp_units="ms",
     ):
-        first_iteration = True
         for start, end in zip(time_steps, time_steps[1:]):
             formatted_start = start  # formatted for exchange API calls
             formatted_end = end
@@ -252,13 +251,6 @@ class BaseSyncCandles(object):
             )
 
             res = self.call_api(endpoint, params)
-            # ensure at least the first candle exists, to avoid making a bunch of pointless API calls
-            if first_iteration:
-                assert res, (
-                    "Did not receive any candles from the start of the requested range!"
-                    " Did it exist on the exchange at the start time?"
-                )
-            first_iteration = False
             self.write_candles(res, extra_tags, timestamp_units)
 
 
