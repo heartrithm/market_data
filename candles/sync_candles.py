@@ -66,6 +66,8 @@ class BaseSyncCandles(object):
         latest = self.influx_client.query(query + " ORDER BY time DESC LIMIT 1", bind_params=params)
         earliest = self.influx_client.query(query + " ORDER BY time ASC LIMIT 1", bind_params=params)
 
+        # NOTE: all candles are stored in influx as ms. So convert to s when retrieving, and later we up-convert to ms
+        # or us if required by the exchange. When querying manually, run influx with: `influx -precision=ms` /!\
         earliest = arrow.get(list(earliest)[0][0]["time"] / 1000).timestamp if earliest else 0
         latest = arrow.get(list(latest)[0][0]["time"] / 1000).timestamp if latest else 0
         return earliest, latest
@@ -97,7 +99,7 @@ class BaseSyncCandles(object):
         data_to_fetch = math.ceil(delta_mins / self.BIN_SIZES[self.interval])
         return math.ceil(data_to_fetch / batch_limit), new_start, new_end, fetch_again_from_ts
 
-    def write_candles(self, candles, extra_tags=None):
+    def write_candles(self, candles, extra_tags=None, timestamp_units="ms"):
         """ Writes candle data to influxdb. """
         out = []
         tags = {"symbol": self.symbol, "interval": self.interval}
@@ -121,11 +123,15 @@ class BaseSyncCandles(object):
             assert _low <= _high, f"Low price must be <= the High price. Candle: {c}"
             assert _low <= _close, f"Low price must be <= the Close price. Candle: {c}"
             assert _high >= _open, f"High price must be <= the Open price. Candle: {c}"
+            if timestamp_units == "s":  # write in ms, as that's how we query
+                _time = int(c[self.candle_order["ts"]] * 1e3)
+            else:
+                _time = int(c[self.candle_order["ts"]])
             out.append(
                 {
                     "measurement": "candles_" + self.interval,
                     "tags": tags,
-                    "time": c[self.candle_order["ts"]],
+                    "time": _time,
                     "fields": {"open": _open, "high": _high, "low": _low, "close": _close, "volume": _volume},
                 }
             )
@@ -253,7 +259,7 @@ class BaseSyncCandles(object):
                     " Did it exist on the exchange at the start time?"
                 )
             first_iteration = False
-            self.write_candles(res, extra_tags)
+            self.write_candles(res, extra_tags, timestamp_units)
 
 
 class SyncSFOXCandles(BaseSyncCandles):
