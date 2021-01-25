@@ -222,13 +222,15 @@ class BaseSyncCandles(object):
     ):
         first_iteration = True
         for start, end in zip(time_steps, time_steps[1:]):
+            formatted_start = start  # formatted for exchange API calls
+            formatted_end = end
             if timestamp_units == "ms":
-                start *= 1e3
-                end *= 1e3
+                formatted_start *= 1e3
+                formatted_end *= 1e3
             elif timestamp_units == "us":
-                start *= 1e6
-                end *= 1e6
-            params = {"limit": self.API_MAX_RECORDS, start_format: int(start), end_format: int(end)}
+                formatted_start *= 1e6
+                formatted_end *= 1e6
+            params = {"limit": self.API_MAX_RECORDS, start_format: int(formatted_start), end_format: int(formatted_end)}
 
             if extra_params:
                 params.update(extra_params)
