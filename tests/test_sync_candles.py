@@ -7,6 +7,53 @@ import arrow
 import re
 
 
+class TestSyncSFOXCandles:
+    def test_pull_candles(self):
+        exchange = "sfox"
+        symbol = "BTCUSD"
+        interval = "1m"
+        start = 1611594060
+        end = 1611595781
+        db = "test_" + exchange
+
+        influx = Candles(exchange, symbol, interval, create_if_missing=True)
+
+        if [x for x in influx.client.get_list_database() if x["name"] == db]:
+            assert db.startswith(
+                "test_"
+            ), "DB name doesn't start with 'test_'; aborting to avoid dropping the prod db..."
+            logger.info("dropping existing database: %s" % db)
+            influx.client.drop_database(db)
+        influx.client.create_database(db)
+
+        btc_candles = open("tests/data/candles_sfox_btcusd.json", "r").read()
+        with freeze_time(arrow.get(end).datetime):
+            # load all data in, insert in influx, verify rows count
+            client = get_sync_candles_class(exchange=exchange, symbol=symbol, interval=interval, start=start)
+            with mock() as m:
+                m.register_uri(
+                    "GET", re.compile(r"chartdata.sfox.com\/.*"), text=btc_candles,
+                )
+                m.register_uri(ANY, re.compile(r"localhost:8086.*"), real_http=True)
+                client.pull_data()
+            assert len(influx.get("*")) == 29
+
+        influx.client.query("DROP SERIES FROM /.*/")
+        with freeze_time(arrow.get(end).datetime):
+            # verify start/end dates are sent to exchange properly:
+            client = get_sync_candles_class(exchange=exchange, symbol=symbol, interval=interval, start=start, end=end)
+            with mock() as m:
+                m.register_uri("GET", re.compile(r"chartdata.sfox.com\/.*"), text=btc_candles)
+                m.register_uri(ANY, re.compile(r"localhost:8086.*"), real_http=True)
+                client.pull_data()
+            reqs = [x for x in m.request_history if x.hostname.startswith("chartdata.sfox.com")]
+            exchange_req = reqs[0]  # this only takes 1 query on sfox
+            # NOTE: we aren't dividing by 1000 here, as it isn't being fetched form influx with precision=ms.
+            # Exchange data is seconds.
+            assert int(arrow.get(float(exchange_req.qs["starttime"][0])).timestamp) == start
+            assert int(arrow.get(float(exchange_req.qs["endtime"][0])).timestamp) == end
+
+
 class TestSyncBitfinexCandles:
     def test_pull_candles(self):
         exchange = "bitfinex"
@@ -93,6 +140,26 @@ class TestCandles:
     def test_binance_get(self):
         exchange = "binance"
         symbol = "ETHUSDT"
+        interval = "1m"
+        influx = Candles(exchange, symbol, interval)
+
+        start = 1590889920.0
+        end = 1590891120.0
+        fh = open("tests/data/lowhigh_candles.json", "r")
+        with mock() as m:
+            m.register_uri("GET", re.compile(r"localhost:8086"), text=fh.read())
+            res = influx.get("*")
+            assert res is not None
+            res = influx.get("*", start=start)
+            assert res is not None
+            res = influx.get("*", end=end)
+            assert res is not None
+            res = influx.get("*", start=start, end=end)
+            assert res is not None
+
+    def test_sfox_get(self):
+        exchange = "sfox"
+        symbol = "ETHUSD"
         interval = "1m"
         influx = Candles(exchange, symbol, interval)
 
