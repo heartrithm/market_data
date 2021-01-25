@@ -66,8 +66,8 @@ class BaseSyncCandles(object):
         latest = self.influx_client.query(query + " ORDER BY time DESC LIMIT 1", bind_params=params)
         earliest = self.influx_client.query(query + " ORDER BY time ASC LIMIT 1", bind_params=params)
 
-        earliest = arrow.get(list(earliest)[0][0]["time"]).timestamp if earliest else 0
-        latest = arrow.get(list(latest)[0][0]["time"]).timestamp if latest else 0
+        earliest = arrow.get(list(earliest)[0][0]["time"] / 1000).timestamp if earliest else 0
+        latest = arrow.get(list(latest)[0][0]["time"] / 1000).timestamp if latest else 0
         return earliest, latest
 
     def get_iterations_for_range(self, batch_limit):
