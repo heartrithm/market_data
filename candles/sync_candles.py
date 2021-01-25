@@ -149,7 +149,7 @@ class BaseSyncCandles(object):
         yield int(end.timestamp)
 
     def sync(
-        self, endpoint, extra_params={}, extra_tags=None, start_format=None, end_format=None, timestamp_units="ms"
+        self, endpoint, extra_params={}, extra_tags=None, start_format="start", end_format="end", timestamp_units="ms"
     ):
         """ Pulls data from the exchange, and assumes it takes params: limit, start, end
             extra_params: will be added to each exchange request
@@ -216,8 +216,8 @@ class BaseSyncCandles(object):
         endpoint,
         extra_params,
         extra_tags,
-        start_format=None,
-        end_format=None,
+        start_format="start",
+        end_format="end",
         timestamp_units="ms",
     ):
         first_iteration = True
@@ -228,9 +228,7 @@ class BaseSyncCandles(object):
             elif timestamp_units == "us":
                 start *= 1e6
                 end *= 1e6
-            params = {"limit": self.API_MAX_RECORDS, "start": int(start), "end": int(end)}
-            if start_format and end_format:
-                params = {"limit": self.API_MAX_RECORDS, start_format: int(start), end_format: int(end)}
+            params = {"limit": self.API_MAX_RECORDS, start_format: int(start), end_format: int(end)}
 
             if extra_params:
                 params.update(extra_params)
