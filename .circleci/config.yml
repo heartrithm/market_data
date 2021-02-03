@@ -12,6 +12,7 @@ jobs:
       - run:
           name: install dev/test requirements
           command: |
+            printf '#!/bin/sh\nexit 0' > /usr/sbin/policy-rc.d  # allow influx to run in docker
             sudo apt-get install influxdb
             sudo pip install -r requirements-test.txt
       - python/save-cache
