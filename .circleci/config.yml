@@ -12,6 +12,7 @@ jobs:
       - run:
           name: install latest influxdb
           command: |
+            apt-get update
             apt-get install -y wget
             wget -qO- https://repos.influxdata.com/influxdb.key | sudo apt-key add -
             source /etc/lsb-release
