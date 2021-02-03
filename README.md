@@ -1,3 +1,5 @@
+[![Coverage Status](https://coveralls.io/repos/github/heartrithm/market_data/badge.svg?branch=master)](https://coveralls.io/github/heartrithm/market_data?branch=master)
+
 # Basic design
 
 # Usage
