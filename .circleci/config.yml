@@ -12,17 +12,18 @@ jobs:
       - run:
           name: install latest influxdb
           command: |
+            apt-get install -y wget
             wget -qO- https://repos.influxdata.com/influxdb.key | sudo apt-key add -
             source /etc/lsb-release
             echo "deb https://repos.influxdata.com/${DISTRIB_ID,,} ${DISTRIB_CODENAME} stable" | sudo tee /etc/apt/sources.list.d/influxdb.list
-            sudo apt-get update
-            sudo apt-get install -y influxdb
-            sudo /etc/init.d/influxdb start
+            apt-get update
+            apt-get install -y influxdb
+            /etc/init.d/influxdb start
       - run:
           name: install dev/test requirements
           command: |
-            sudo apt-get install -y python3.8
-            sudo pip3 install -r requirements-test.txt
+            apt-get install -y python3.8
+            pip3 install -r requirements-test.txt
       - python/save-cache
       - run:
           name: lint checks
