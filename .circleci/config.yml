@@ -4,25 +4,25 @@ orbs:
 
 jobs:
   build-and-test:
-    executor: python/default
+    docker:
+      - image: circleci/python:3.9
     steps:
       - checkout
       - python/load-cache
       - run:
-          name: set up virtualenv
-          command: virtualenv .venv && source .venv/bin/activate
-      - run:
           name: install dev/test requirements
-          command: source .venv/bin/activate && pip install -r requirements-test.txt
+          command: |
+            sudo apt-get install influxdb
+            pip install -r requirements-test.txt
       - python/save-cache
       - run:
           name: lint checks
           command: |
-            source .venv/bin/activate && for f in `find ./ -name '*py' | grep -v test | grep -v venv`; do pyflakes $f; done
+            for f in `find ./ -name '*py' | grep -v test | grep -v venv`; do pyflakes $f; done
       - run:
           name: run tests
           command: |
-            source .venv/bin/activate && coverage run --source=candles -m pytest
+            coverage run --source=candles -m pytest
 
       - store_test_results:
           path: .coverage
@@ -32,7 +32,7 @@ jobs:
       - run:
           name: coveralls upload
           command: |
-            source .venv/bin/activate && COVERALLS_REPO_TOKEN=${COVERALLS_TOKEN} coveralls
+            COVERALLS_REPO_TOKEN=${COVERALLS_TOKEN} coveralls
 
 workflows:
   main:
