@@ -10,10 +10,17 @@ jobs:
       - checkout
       - python/load-cache
       - run:
+          name: install latest influxdb
+          command: |
+            wget -qO- https://repos.influxdata.com/influxdb.key | sudo apt-key add -
+            source /etc/lsb-release
+            echo "deb https://repos.influxdata.com/${DISTRIB_ID,,} ${DISTRIB_CODENAME} stable" | sudo tee /etc/apt/sources.list.d/influxdb.list
+            sudo apt-get update
+            sudo apt-get install -y influxdb
+            sudo /etc/init.d/influxdb start
+      - run:
           name: install dev/test requirements
           command: |
-            printf '#!/bin/sh\nexit 0' > /usr/sbin/policy-rc.d  # allow influx to run in docker
-            sudo apt-get install influxdb
             sudo pip install -r requirements-test.txt
       - python/save-cache
       - run:
