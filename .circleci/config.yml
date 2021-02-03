@@ -13,16 +13,16 @@ jobs:
           command: virtualenv .venv && source .venv/bin/activate
       - run:
           name: install dev/test requirements
-          command: pip install -r requirements-test.txt
+          command: source .venv/bin/activate && pip install -r requirements-test.txt
       - python/save-cache
       - run:
           name: lint checks
           command: |
-            for f in `find ./ -name '*py' | grep -v test | grep -v venv`; do pyflakes $f; done
+            source .venv/bin/activate && for f in `find ./ -name '*py' | grep -v test | grep -v venv`; do pyflakes $f; done
       - run:
           name: run tests
           command: |
-            coverage run --source=candles -m pytest
+            source .venv/bin/activate && coverage run --source=candles -m pytest
 
       - store_test_results:
           path: .coverage
@@ -32,7 +32,7 @@ jobs:
       - run:
           name: coveralls upload
           command: |
-            COVERALLS_REPO_TOKEN=${COVERALLS_TOKEN} coveralls
+            source .venv/bin/activate && COVERALLS_REPO_TOKEN=${COVERALLS_TOKEN} coveralls
 
 workflows:
   main:
