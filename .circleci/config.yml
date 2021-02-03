@@ -13,7 +13,7 @@ jobs:
           name: install dev/test requirements
           command: |
             sudo apt-get install influxdb
-            pip install -r requirements-test.txt
+            sudo pip install -r requirements-test.txt
       - python/save-cache
       - run:
           name: lint checks
