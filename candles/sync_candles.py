@@ -330,7 +330,7 @@ class SyncBitfinexCandles(BaseSyncCandles):
 
     DEFAULT_SYNC_DAYS = 90
     API_MAX_RECORDS = 10000
-    API_CALLS_PER_MIN = 100000 if IS_PYTEST else 60
+    API_CALLS_PER_MIN = 100000 if IS_PYTEST else 90
     EXCHANGE = "bitfinex"
     PERIODS = [f"p{n}" for n in range(2, 31)]
 
