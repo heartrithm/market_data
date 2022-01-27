@@ -6,13 +6,15 @@ import arrow
 import requests
 import sys
 
+END = arrow.utcnow()
+
 
 def ftx():
-    """ Sync all perpetual futures' funding rate data """
+    """Sync all perpetual futures' funding rate data"""
     for future in requests.get("https://ftx.com/api/futures").json()["result"]:
         if "PERP" not in future["name"]:
             continue
-        get_sync_rates_class(exchange="ftx", symbol=future["name"], start="2018-01-01", end="2022-01-26",).pull_data()
+        get_sync_rates_class(exchange="ftx", symbol=future["name"], start="2018-01-01", end=END,).pull_data()
 
 
 def bitfinex():
@@ -21,7 +23,7 @@ def bitfinex():
         if not cur_symbol.startswith("t") or ":" in cur_symbol or "USD" not in cur_symbol:
             continue
         client = get_sync_candles_class(
-            exchange="bitfinex", symbol=cur_symbol, interval="1m", start="2018-11-01", end="2020-11-29"
+            exchange="bitfinex", symbol=cur_symbol, interval="1m", start="2018-11-01", end=END
         )
         client.pull_data()
 
@@ -52,7 +54,7 @@ def binance():
             print(f"Skipping {cur_symbol}, volume is {candles[0][5]} from candle: {candles[0]}")
             continue
         client = get_sync_candles_class(
-            exchange="binance", symbol=cur_symbol, interval="1m", start="2018-11-01", end="2020-11-29"
+            exchange="binance", symbol=cur_symbol, interval="1m", start="2018-11-01", end=END
         )
         try:
             client.pull_data()
