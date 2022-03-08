@@ -34,7 +34,7 @@ class BaseSyncCandles(object):
     EXCHANGE = None
     DEFAULT_SYNC_DAYS = 90
     start = end = client = None
-    ALLOWED_DATA_TYPES = ["candles", "funding_rates"]
+    ALLOWED_DATA_TYPES = ["candles", "futures"]
 
     def __init__(self, symbol, interval, start=None, end=None, host=None, data_type="candles"):
         self.candle_order = None
@@ -143,15 +143,26 @@ class BaseSyncCandles(object):
                         "fields": {"open": _open, "high": _high, "low": _low, "close": _close, "volume": _volume},
                     }
                 )
-            elif self.data_type == "funding_rates":
+            elif self.data_type == "futures":
                 # currently based on FTX's data format
-                _time = arrow.get(c["time"]).timestamp * 1000  # arrow loads FTX's ISO8601 strings as seconds, convert
+                _time = arrow.utcnow().floor("hour").timestamp * 1000  # ms
+                fields = {}
+                for key, val in c.items():
+                    if isinstance(val, str):
+                        tags[key] = val
+                    elif isinstance(val, bool):
+                        tags[key] = str(val).lower()
+                    elif isinstance(val, int):
+                        fields[key] = float(val)
+                    elif isinstance(val, float):
+                        fields[key] = val
+
                 out.append(
                     {
-                        "measurement": "funding_rates_" + self.interval,
+                        "measurement": "futures_" + self.interval,
                         "tags": tags,
                         "time": _time,
-                        "fields": {"rate": c["rate"]},
+                        "fields": fields,
                     }
                 )
 
@@ -183,6 +194,7 @@ class BaseSyncCandles(object):
         timestamp_units="ms",
         result_key=None,
         reverse_order=False,  # API has no way to return oldest first, so reverse in code
+        merge_endpoint_results_dict=False,
     ):
         """Pulls data from the exchange, and assumes it takes params: limit, start, end
         extra_params: will be added to each exchange request
@@ -221,6 +233,7 @@ class BaseSyncCandles(object):
             timestamp_units=timestamp_units,
             result_key=result_key,
             reverse_order=False,
+            merge_endpoint_results_dict=merge_endpoint_results_dict,
         )
 
         # Date requested was before latest in the db, so the first fetch grabbed start->earliest_in_db,
@@ -243,6 +256,7 @@ class BaseSyncCandles(object):
                 timestamp_units=timestamp_units,
                 result_key=result_key,
                 reverse_order=False,
+                merge_endpoint_results_dict=merge_endpoint_results_dict,
             )
 
     def do_fetch(
@@ -258,6 +272,7 @@ class BaseSyncCandles(object):
         timestamp_units="ms",
         result_key=None,
         reverse_order=False,
+        merge_endpoint_results_dict=False,
     ):
         for start, end in zip(time_steps, time_steps[1:]):
             formatted_start = start  # formatted for exchange API calls
@@ -285,12 +300,25 @@ class BaseSyncCandles(object):
                 )
             )
 
-            res = self.call_api(endpoint, params)
-            if result_key:
-                res = res[result_key]
-            if reverse_order:
-                res.reverse()
-            self.write_candles(res, extra_tags, timestamp_units)
+            if not isinstance(endpoint, list):
+                endpoint = [endpoint]
+            if merge_endpoint_results_dict:
+                res_formatted = dict()  # we expect a single dict per endpoint
+            else:
+                res_formatted = list()  # normal case: lists are returned
+            for api_endpoint in endpoint:
+                res = self.call_api(api_endpoint, params)
+                if result_key:
+                    res = res[result_key]
+                if reverse_order:
+                    res.reverse()
+                if merge_endpoint_results_dict:
+                    res_formatted = res | res_formatted  # union of two dicts
+                else:
+                    res_formatted += res  # for list use cases
+            if not isinstance(res_formatted, list):
+                res_formatted = [res_formatted]
+            self.write_candles(res_formatted, extra_tags, timestamp_units)
 
 
 class SyncSFOXCandles(BaseSyncCandles):
