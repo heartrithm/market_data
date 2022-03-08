@@ -6,7 +6,7 @@ from loguru import logger
 from requests_mock import mock, ANY
 
 from candles.candles import Candles
-from funding_rates.sync_rates import get_sync_rates_class
+from futures.sync_futures import get_sync_futures_class
 
 
 class TestSyncFTXCandles:
@@ -18,7 +18,7 @@ class TestSyncFTXCandles:
         end = 1643281200
         db = "test_" + exchange
 
-        influx = Candles(exchange, symbol, interval, create_if_missing=True, data_type="funding_rates")
+        influx = Candles(exchange, symbol, interval, create_if_missing=True, data_type="futures")
 
         if [x for x in influx.client.get_list_database() if x["name"] == db]:
             assert db.startswith(
@@ -28,22 +28,22 @@ class TestSyncFTXCandles:
             influx.client.drop_database(db)
         influx.client.create_database(db)
 
-        btc_rates = open("tests/data/funding_rates_ftx_btc.json", "r").read()
+        btc_rates = open("tests/data/futures_ftx_btc.json", "r").read()
         with freeze_time(arrow.get(end).datetime):
             # load all data in, insert in influx, verify rows count
-            client = get_sync_rates_class(exchange=exchange, symbol=symbol, interval=interval, start=start)
+            client = get_sync_futures_class(exchange=exchange, symbol=symbol, interval=interval, start=start)
             with mock() as m:
                 m.register_uri(
                     "GET", re.compile(r"ftx.com\/api.*"), text=btc_rates,
                 )
                 m.register_uri(ANY, re.compile(r"localhost:8086.*"), real_http=True)
                 client.pull_data()
-            assert len(influx.get("*")) == 500
+            assert len(influx.get("*")) == 1
 
         influx.client.query("DROP SERIES FROM /.*/")
         with freeze_time(arrow.get(end).datetime):
             # verify start/end dates are sent to exchange properly:
-            client = get_sync_rates_class(exchange=exchange, symbol=symbol, interval=interval, start=start, end=end)
+            client = get_sync_futures_class(exchange=exchange, symbol=symbol, interval=interval, start=start, end=end)
             with mock() as m:
                 m.register_uri(
                     "GET", re.compile(r"ftx.com\/api.*"), text=btc_rates,

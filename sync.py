@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 from candles.sync_candles import get_sync_candles_class
-from funding_rates.sync_rates import get_sync_rates_class
+from futures.sync_futures import get_sync_futures_class
 from loguru import logger
 import click
 import os
 
-COMMANDS = ["candles", "funding_rates"]
+COMMANDS = ["candles", "futures"]
 logger.level = os.getenv("LOG_LEVEL", "WARNING")
 
 
@@ -30,9 +30,9 @@ def run(*args, **options):  # pragma: no cover
         )
         client.pull_data()
 
-    elif options["command"] == "funding_rates":
+    elif options["command"] == "futures":
         exchange = options["exchange"].lower()
-        client = get_sync_rates_class(
+        client = get_sync_futures_class(
             exchange=exchange,
             symbol=options["symbol"],
             interval=options["interval"],
