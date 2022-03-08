@@ -5,7 +5,7 @@ orbs:
 jobs:
   build-and-test:
     docker:
-      - image: ubuntu:18.04
+      - image: python:3.9-bullseye
     steps:
       - checkout
       - python/load-cache
