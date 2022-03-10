@@ -1,9 +1,11 @@
-from exchanges.apis.ftx import FTXApi
+import sys
 
 from ratelimit import limits, sleep_and_retry
-from candles.sync_candles import BaseSyncCandles
 
-import sys
+from candles.sync_candles import BaseSyncCandles
+from exchanges.apis.ftx import FTXApi
+from tardis import SyncHistorical
+
 
 IS_PYTEST = "pytest" in sys.modules
 
@@ -51,3 +53,6 @@ class SyncFTXFutures(BaseSyncCandles):
             result_key="result",
             merge_endpoint_results_dict=True,
         )
+        
+        # with FTX futures data, we only get now() from FTX. Call Tardis to get history:
+        SyncHistorical(self.exchange, self.symbol, self.interval, self.start, self.end)
