@@ -22,7 +22,7 @@ class SyncFTXFutures(BaseSyncCandles):
         Some comes from FTX, some from tardis.dev (historical data).
     """
 
-    DEFAULT_SYNC_DAYS = 90
+    DEFAULT_SYNC_DAYS = 1
     API_MAX_RECORDS = None
     API_CALLS_PER_MIN = 100000 if IS_PYTEST else 1000
     EXCHANGE = "ftx"
@@ -46,13 +46,13 @@ class SyncFTXFutures(BaseSyncCandles):
 
         self.sync(
             endpoint,
-            #extra_params={"future": self.symbol},
+            extra_tags={"source": "ftx"},
             start_format="start_time",
             end_format="end_time",
             timestamp_units="s",
             result_key="result",
             merge_endpoint_results_dict=True,
         )
-        
+
         # with FTX futures data, we only get now() from FTX. Call Tardis to get history:
-        SyncHistorical(self.exchange, self.symbol, self.interval, self.start, self.end)
+        SyncHistorical(self.symbol, self.interval, start=self.start, end=self.end).pull_data()

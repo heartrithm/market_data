@@ -1,6 +1,7 @@
 -e git+https://github.com/heartrithm/exchanges.git#egg=exchanges
 arrow
 boto3
+django
 influxdb
 loguru
 ratelimit

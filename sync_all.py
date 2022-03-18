@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """ Quick and dirty script to automate pulling *all symbols for an exchange. """
 from candles.sync_candles import get_sync_candles_class
-from fututres.sync_futures import get_sync_futures_class
+from futures.sync_futures import get_sync_futures_class
 import arrow
 import requests
 import sys

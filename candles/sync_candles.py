@@ -41,9 +41,9 @@ class BaseSyncCandles(object):
         self.symbol = symbol
         self.interval = interval
         if start:
-            self.start = arrow.get(start).timestamp
+            self.start = arrow.get(start).timestamp()
         if end:
-            self.end = arrow.get(end).timestamp
+            self.end = arrow.get(end).timestamp()
         self.data_type = data_type
         assert self.data_type in self.ALLOWED_DATA_TYPES
 
@@ -65,7 +65,7 @@ class BaseSyncCandles(object):
         isn't one
         """
 
-        query = "SELECT open,time FROM candles_{} WHERE symbol=$symbol".format(self.interval)
+        query = f"SELECT open,time FROM {self.data_type}_{self.interval} WHERE symbol=$symbol"
         params = {"symbol": self.symbol}
 
         latest = self.influx_client.query(query + " ORDER BY time DESC LIMIT 1", bind_params=params)
@@ -145,7 +145,7 @@ class BaseSyncCandles(object):
                 )
             elif self.data_type == "futures":
                 # currently based on FTX's data format
-                _time = arrow.utcnow().floor("hour").timestamp * 1000  # ms
+                _time = int(arrow.utcnow().floor("hour").timestamp() * 1000)  # ms
                 fields = {}
                 for key, val in c.items():
                     if isinstance(val, str):
@@ -157,14 +157,7 @@ class BaseSyncCandles(object):
                     elif isinstance(val, float):
                         fields[key] = val
 
-                out.append(
-                    {
-                        "measurement": "futures_" + self.interval,
-                        "tags": tags,
-                        "time": _time,
-                        "fields": fields,
-                    }
-                )
+                out.append({"measurement": "futures_" + self.interval, "tags": tags, "time": _time, "fields": fields})
 
         self.influx_client.write_points(out)
 
@@ -181,8 +174,8 @@ class BaseSyncCandles(object):
             return start, end
         diff = (end - start) / steps
         for i in range(steps):
-            yield int((start + diff * i).timestamp)
-        yield int(end.timestamp)
+            yield int((start + diff * i).timestamp())
+        yield int(end.timestamp())
 
     def sync(
         self,
