@@ -65,7 +65,8 @@ class BaseSyncCandles(object):
         isn't one
         """
 
-        query = f"SELECT open,time FROM {self.data_type}_{self.interval} WHERE symbol=$symbol"
+        # query = f"SELECT open,time FROM {self.data_type}_{self.interval} WHERE symbol=$symbol"
+        query = f"SELECT * FROM {self.data_type}_{self.interval} WHERE symbol=$symbol"
         params = {"symbol": self.symbol}
 
         latest = self.influx_client.query(query + " ORDER BY time DESC LIMIT 1", bind_params=params)
@@ -73,8 +74,9 @@ class BaseSyncCandles(object):
 
         # NOTE: all candles are stored in influx as ms. So convert to s when retrieving, and later we up-convert to ms
         # or us if required by the exchange. When querying manually, run influx with: `influx -precision=ms` /!\
-        earliest = arrow.get(list(earliest)[0][0]["time"] / 1000).timestamp if earliest else 0
-        latest = arrow.get(list(latest)[0][0]["time"] / 1000).timestamp if latest else 0
+        earliest = arrow.get(list(earliest)[0][0]["time"] / 1000).timestamp() if earliest else 0
+        latest = arrow.get(list(latest)[0][0]["time"] / 1000).timestamp() if latest else 0
+
         return earliest, latest
 
     def get_iterations_for_range(self, batch_limit):
@@ -144,8 +146,12 @@ class BaseSyncCandles(object):
                     }
                 )
             elif self.data_type == "futures":
+                if not c:
+                    logger.warning("empty futures result set")
+                    continue
+
                 # currently based on FTX's data format
-                _time = int(arrow.utcnow().floor("hour").timestamp() * 1000)  # ms
+                _time = int(arrow.get(c["nextFundingTime"]).floor("hour").timestamp() * 1000)  # ms
                 fields = {}
                 for key, val in c.items():
                     if isinstance(val, str):
