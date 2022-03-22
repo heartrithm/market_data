@@ -10,16 +10,27 @@ from utils import get_aws_secret
 class SyncHistorical(BaseSyncCandles):
     """ Class to enable syncing historical data via Tardis """
 
-    AVAILABLE_FROM = arrow.get("2019-08-01").timestamp()
-    DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
+    AVAILABLE_FROM = "2020-05-13"
+    DATE_FORMAT = "%Y-%m-%dT%H:%M:%S"  # seconds resolution
 
     API_MAX_RECORDS = 1
     EXCHANGE = "ftx"
 
     def __init__(self, symbol, interval, start=None, end=None, host=None):
+        start = self.trim_date(start)
+        end = self.trim_date(end)
         super().__init__(symbol, interval, start, end, host, data_type="futures")
-        self.start = max(self.start, self.AVAILABLE_FROM)
-        self.end = max(self.end, self.AVAILABLE_FROM)
+
+    def trim_date(self, date_str):
+        # no historical data prior to `AVAILABLE_FROM`:
+        # https://docs.tardis.dev/historical-data-details/ftx#captured-real-time-channels
+        if not date_str:
+            return None
+
+        if arrow.get(self.AVAILABLE_FROM).timestamp() < arrow.get(date_str).timestamp():
+            return date_str
+        else:
+            return self.AVAILABLE_FROM
 
     def api_client(self):
         if not self.client:
@@ -27,9 +38,6 @@ class SyncHistorical(BaseSyncCandles):
         return self.client
 
     def call_api(self, endpoint, params):
-        # is there a less hackish way to do this?
-        params["from"] = arrow.get(params["from"]).strftime(self.DATE_FORMAT)
-        params["to"] = arrow.get(params["to"]).strftime(self.DATE_FORMAT)
         res = self.client.brequest(1, endpoint=endpoint, params=params)
         return res
 
