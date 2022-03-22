@@ -14,7 +14,7 @@ def ftx():
     for future in requests.get("https://ftx.com/api/futures").json()["result"]:
         if "PERP" not in future["name"]:
             continue
-        get_sync_futures_class(exchange="ftx", symbol=future["name"], start="2018-01-01", end=END,).pull_data()
+        get_sync_futures_class(exchange="ftx", symbol=future["name"], start="2020-05-13", end=END,).pull_data()
 
 
 def bitfinex():
