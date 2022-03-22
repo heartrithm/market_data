@@ -17,18 +17,19 @@ class SyncHistorical(BaseSyncCandles):
     EXCHANGE = "ftx"
 
     def __init__(self, symbol, interval, start=None, end=None, host=None):
-        start = self.trim_date(start)
-        end = self.trim_date(end)
-        super().__init__(symbol, interval, start, end, host, data_type="futures")
+        super().__init__(
+            symbol, interval, self.trim_date(start), self.trim_date(end), host, data_type="futures",
+        )
 
-    def trim_date(self, date_str):
-        # no historical data prior to `AVAILABLE_FROM`:
-        # https://docs.tardis.dev/historical-data-details/ftx#captured-real-time-channels
-        if not date_str:
+    def trim_date(self, date_string):
+        """ no historical data prior to `AVAILABLE_FROM`:
+        https://docs.tardis.dev/historical-data-details/ftx#captured-real-time-channels
+        """
+        if not date_string:
             return None
 
-        if arrow.get(self.AVAILABLE_FROM).timestamp() < arrow.get(date_str).timestamp():
-            return date_str
+        if arrow.get(self.AVAILABLE_FROM).timestamp() < arrow.get(date_string).timestamp():
+            return date_string
         else:
             return self.AVAILABLE_FROM
 
