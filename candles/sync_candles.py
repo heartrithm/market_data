@@ -148,7 +148,6 @@ class BaseSyncCandles(object):
                 if not c:
                     logger.warning("empty futures result set")
                     continue
-
                 # currently based on FTX's data format
                 _time = int(arrow.get(c["time"]).floor("hour").timestamp() * 1000)  # ms
                 fields = {}
