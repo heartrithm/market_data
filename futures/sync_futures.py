@@ -38,9 +38,15 @@ class SyncFTXFutures(BaseSyncCandles):
     def call_api(self, endpoint, params):
         # FTX futures calls return 1 item
         res = self.client.brequest(1, endpoint=endpoint, params=params)
+        if "nextFundingTime" in res:
+            res["time"] = res["nextFundingTime"]  # helps us play nice with sync
         return res  # one item returned from FTX /futures/ API - add list because we iterate later
 
     def pull_data(self):
+        # call tardis to get history...
+        SyncHistorical(self.symbol, self.interval, start=self.start, end=self.end).pull_data()
+
+        # ...then ftx to get current snapshot
         self.candle_order = None
         endpoint = [f"futures/{self.symbol}", f"futures/{self.symbol}/stats"]
 
@@ -53,6 +59,3 @@ class SyncFTXFutures(BaseSyncCandles):
             result_key="result",
             merge_endpoint_results_dict=True,
         )
-
-        # with FTX futures data, we only get now() from FTX. Call Tardis to get history:
-        SyncHistorical(self.symbol, self.interval, start=self.start, end=self.end).pull_data()

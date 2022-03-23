@@ -22,8 +22,8 @@ class SyncHistorical(BaseSyncCandles):
         )
 
     def trim_date(self, date_string):
-        """ no historical data prior to `AVAILABLE_FROM`:
-        https://docs.tardis.dev/historical-data-details/ftx#captured-real-time-channels
+        """No historical data prior to AVAILABLE_FROM
+            https://docs.tardis.dev/historical-data-details/ftx#captured-real-time-channels
         """
         if not date_string:
             return None
@@ -40,6 +40,8 @@ class SyncHistorical(BaseSyncCandles):
 
     def call_api(self, endpoint, params):
         res = self.client.brequest(1, endpoint=endpoint, params=params)
+        if "nextFundingTime" in res:
+            res["time"] = res["nextFundingTime"]  # helps us play nice with sync
         return res
 
     def pull_data(self):
