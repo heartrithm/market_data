@@ -40,8 +40,8 @@ class SyncHistorical(BaseSyncCandles):
 
     def call_api(self, endpoint, params):
         res = self.client.brequest(1, endpoint=endpoint, params=params)
-        if "nextFundingTime" in res:
-            res["time"] = res["nextFundingTime"]  # helps us play nice with sync
+        if res["result"]:
+            res["result"]["time"] = arrow.get(res["result"]["nextFundingTime"]).timestamp()
         return res
 
     def pull_data(self):
@@ -57,5 +57,4 @@ class SyncHistorical(BaseSyncCandles):
             end_format="to",
             timestamp_units="s",
             result_key="result",
-            merge_endpoint_results_dict=True,
         )
