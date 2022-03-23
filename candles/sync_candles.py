@@ -65,7 +65,6 @@ class BaseSyncCandles(object):
         isn't one
         """
 
-        # query = f"SELECT open,time FROM {self.data_type}_{self.interval} WHERE symbol=$symbol"
         query = f"SELECT * FROM {self.data_type}_{self.interval} WHERE symbol=$symbol"
         params = {"symbol": self.symbol}
 
@@ -132,7 +131,7 @@ class BaseSyncCandles(object):
                 _volume = float(c[self.candle_order["volume"]])
                 assert _low <= _high, f"Low price must be <= the High price. Candle: {c}"
                 assert _low <= _close, f"Low price must be <= the Close price. Candle: {c}"
-                assert _high >= _open, f"High price must be <= the Open price. Candle: {c}"
+                assert _high >= _open, f"High price must be >= the Open price. Candle: {c}"
                 if timestamp_units == "s":  # write in ms, as that's how we query
                     _time = int(c[self.candle_order["ts"]] * 1e3)
                 else:
@@ -151,7 +150,7 @@ class BaseSyncCandles(object):
                     continue
 
                 # currently based on FTX's data format
-                _time = int(arrow.get(c["nextFundingTime"]).floor("hour").timestamp() * 1000)  # ms
+                _time = int(arrow.get(c["time"]).floor("hour").timestamp() * 1000)  # ms
                 fields = {}
                 for key, val in c.items():
                     if isinstance(val, str):
