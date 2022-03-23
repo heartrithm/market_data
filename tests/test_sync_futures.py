@@ -33,9 +33,8 @@ class TestSyncFTXCandles:
             # load all data in, insert in influx, verify rows count
             client = get_sync_futures_class(exchange=exchange, symbol=symbol, interval=interval, start=start)
             with mock() as m:
-                m.register_uri(
-                    "GET", re.compile(r"ftx.com\/api.*"), text=btc_rates,
-                )
+                m.register_uri("GET", re.compile(r"api.tardis.dev\/.*"), text=btc_rates)
+                m.register_uri("GET", re.compile(r"ftx.com\/api.*"), text=btc_rates)
                 m.register_uri(ANY, re.compile(r"localhost:8086.*"), real_http=True)
                 client.pull_data()
             assert len(influx.get("*")) == 1
@@ -45,9 +44,8 @@ class TestSyncFTXCandles:
             # verify start/end dates are sent to exchange properly:
             client = get_sync_futures_class(exchange=exchange, symbol=symbol, interval=interval, start=start, end=end)
             with mock() as m:
-                m.register_uri(
-                    "GET", re.compile(r"ftx.com\/api.*"), text=btc_rates,
-                )
+                m.register_uri("GET", re.compile(r"api.tardis.dev\/.*"), text=btc_rates)
+                m.register_uri("GET", re.compile(r"ftx.com\/api.*"), text=btc_rates)
                 m.register_uri(ANY, re.compile(r"localhost:8086.*"), real_http=True)
                 client.pull_data()
             reqs = [x for x in m.request_history if x.hostname.startswith("ftx.com")]
