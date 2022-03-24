@@ -19,8 +19,8 @@ class SyncFTXRates(BaseSyncCandles):
     """ Sync funding rates for FTX """
 
     DEFAULT_SYNC_DAYS = 90
-    API_MAX_RECORDS = None
-    API_CALLS_PER_MIN = 100000 if IS_PYTEST else 1000
+    API_MAX_RECORDS = 500
+    API_CALLS_PER_MIN = 10_000 if IS_PYTEST else 1000
     EXCHANGE = "ftx"
 
     def api_client(self):
@@ -32,7 +32,8 @@ class SyncFTXRates(BaseSyncCandles):
     @sleep_and_retry
     @limits(calls=API_CALLS_PER_MIN, period=60)  # calls per minute
     def call_api(self, endpoint, params):
-        return self.client.brequest(1, endpoint=endpoint, params=params)
+        res = self.client.brequest(1, endpoint=endpoint, params=params)
+        return res
 
     def pull_data(self):
         self.candle_order = None
@@ -40,6 +41,7 @@ class SyncFTXRates(BaseSyncCandles):
 
         self.sync(
             endpoint,
+            extra_tags={"source": "ftx"},
             extra_params={"future": self.symbol},
             start_format="start_time",
             end_format="end_time",
