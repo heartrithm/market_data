@@ -54,5 +54,5 @@ class TestSyncFTXCandles:
             exchange_req = reqs[0]  # this only takes 1 query on ftx
             # NOTE: we aren't dividing by 1000 here, as it isn't being fetched from influx with precision=ms.
             # Exchange data is ISO8601 hourly, which loads into arrow as seconds.
-            assert int(arrow.get(float(exchange_req.qs["start_time"][0])).timestamp) == start
-            assert int(arrow.get(float(exchange_req.qs["end_time"][0])).timestamp) == end
+            assert int(arrow.get(float(exchange_req.qs["start_time"][0])).timestamp()) == start
+            assert int(arrow.get(float(exchange_req.qs["end_time"][0])).timestamp()) == end
