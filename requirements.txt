@@ -10,11 +10,9 @@ arrow==1.2.2
     # via
     #   -r requirements.in
     #   exchanges
-asgiref==3.5.0
-    # via django
-boto3==1.21.18
+boto3==1.21.25
     # via -r requirements.in
-botocore==1.24.18
+botocore==1.24.25
     # via
     #   boto3
     #   s3transfer
@@ -24,13 +22,11 @@ certifi==2021.10.8
     # via requests
 charset-normalizer==2.0.12
     # via requests
-django==4.0.3
-    # via -r requirements.in
 idna==3.3
     # via requests
 influxdb==5.3.1
     # via -r requirements.in
-jmespath==0.10.0
+jmespath==1.0.0
     # via
     #   boto3
     #   botocore
@@ -45,7 +41,7 @@ python-dateutil==2.8.2
     #   arrow
     #   botocore
     #   influxdb
-pytz==2021.3
+pytz==2022.1
     # via influxdb
 ratelimit==2.2.1
     # via -r requirements.in
@@ -62,11 +58,9 @@ six==1.16.0
     # via
     #   influxdb
     #   python-dateutil
-sqlparse==0.4.2
-    # via django
 ujson==5.1.0
     # via exchanges
-urllib3==1.26.8
+urllib3==1.26.9
     # via
     #   botocore
     #   requests
