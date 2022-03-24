@@ -20,7 +20,7 @@ class SyncFTXRates(BaseSyncCandles):
 
     DEFAULT_SYNC_DAYS = 90
     API_MAX_RECORDS = 500
-    API_CALLS_PER_MIN = 10_000 if IS_PYTEST else 1000
+    API_CALLS_PER_MIN = 30
     EXCHANGE = "ftx"
 
     def api_client(self):
