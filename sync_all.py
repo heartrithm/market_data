@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """ Quick and dirty script to automate pulling *all symbols for an exchange. """
 from candles.sync_candles import get_sync_candles_class
+from funding_rates.sync_rates import get_sync_rates_class
 from futures.sync_futures import get_sync_futures_class
 import arrow
 import requests
@@ -14,6 +15,7 @@ def ftx():
     for future in requests.get("https://ftx.com/api/futures").json()["result"]:
         if "PERP" not in future["name"]:
             continue
+        get_sync_rates_class(exchange="ftx", symbol=future["name"], start="2020-05-13", end=END,).pull_data()
         get_sync_futures_class(exchange="ftx", symbol=future["name"], start="2020-05-13", end=END,).pull_data()
 
 
