@@ -34,7 +34,7 @@ class BaseSyncCandles(object):
     EXCHANGE = None
     DEFAULT_SYNC_DAYS = 90
     start = end = client = None
-    ALLOWED_DATA_TYPES = ["candles", "futures"]
+    ALLOWED_DATA_TYPES = ["candles", "funding_rates", "futures"]
 
     def __init__(self, symbol, interval, start=None, end=None, host=None, data_type="candles"):
         self.candle_order = None
@@ -144,6 +144,21 @@ class BaseSyncCandles(object):
                         "fields": {"open": _open, "high": _high, "low": _low, "close": _close, "volume": _volume},
                     }
                 )
+
+            elif self.data_type == "funding_rates":
+                # currently based on FTX's data format
+                _time = int(
+                    arrow.get(c["time"]).timestamp() * 1000
+                )  # arrow loads FTX's ISO8601 strings as seconds, convert
+                out.append(
+                    {
+                        "measurement": "funding_rates_" + self.interval,
+                        "tags": tags,
+                        "time": _time,
+                        "fields": {"rate": c["rate"]},
+                    }
+                )
+
             elif self.data_type == "futures":
                 if not c:
                     logger.warning("empty futures result set")
