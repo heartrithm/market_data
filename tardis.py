@@ -57,4 +57,5 @@ class SyncHistorical(BaseSyncCandles):
             end_format="to",
             timestamp_units="s",
             result_key="result",
+            merge_endpoint_results_dict=True,
         )
