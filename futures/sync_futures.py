@@ -5,7 +5,8 @@ from ratelimit import limits, sleep_and_retry
 
 from candles.sync_candles import BaseSyncCandles
 from exchanges.apis.ftx import FTXApi
-from tardis import SyncHistorical
+
+# from tardis import SyncHistorical
 
 
 IS_PYTEST = "pytest" in sys.modules
@@ -44,10 +45,10 @@ class SyncFTXFutures(BaseSyncCandles):
         return res  # one item returned from FTX /futures/ API - add list because we iterate later
 
     def pull_data(self):
-        # call tardis to get history...
-        SyncHistorical(self.symbol, self.interval, start=self.start, end=self.end).pull_data()
+        # Tardis:  not using this because it is so sloooowww
+        # SyncHistorical(self.symbol, self.interval, start=self.start, end=self.end).pull_data()
 
-        # ...then ftx to get current snapshot
+        # FTX
         self.candle_order = None
         endpoint = [f"futures/{self.symbol}", f"futures/{self.symbol}/stats"]
 
