@@ -1,38 +1,67 @@
-from candles.sync_candles import BaseSyncCandles
-from exchanges.apis.tardis import TardisApi
+import arrow
+import asyncio
 
+from loguru import logger
+from tardis_client import TardisClient, Channel
+
+from candles.sync_candles import BaseSyncCandles
 from utils import get_aws_secret
 
 
 class SyncHistorical(BaseSyncCandles):
-    """ Class to enable syncing historical data via Tardis """
-    def __init__(exchange, symbol, interval, start=None, end=None):
+    """Class to enable syncing historical data via Tardis - does not use candles.sync_candles because
+    the tardis API is so weird/broken, it's difficult to fit into the model. We still inherit from BaseSyncCandles
+    so that write_candles() uses the same logic as when we're sync'ing from FTX directly, i.e. it parses all
+    data and decides whether it's a tag or a field.
+    """
+    EXCHANGE = "ftx"
+
+    def __init__(self, exchange, symbol, interval, start=None, end=None, data_type="futures"):
         self.exchange = exchange
         self.symbol = symbol
         self.interval = interval
         self.start = start
         self.end = end
+        self.data_type = data_type
 
-        self.client = TardisApi(get_aws_secret("tardis.dev"))
+        self.data = []
+        super().__init__(self.symbol, self.interval, start=self.start, end=self.end, data_type=self.data_type)
 
-        # if you ask for early data, the API doesn't just give you what's available
-        # HTTP/2 400, "code": 150   "message": "There is no data available for '2009-06-01T00:00:00.000Z' date ('from'+'offset' params combination). Data for 'ftx' exchange is available since: '2019-08-01T00:00:00.000Z'."
-        # TODO parse that crap and re-send the request
+    def api_client(self):
+        return TardisClient(api_key=get_aws_secret("tardis.dev")["api_key"])
 
-    def call_api(self, endpoint, params):
-        res = self.client.brequest(1, endpoint=endpoint, params=params)
-        return res
+    def sync(self):
+        """Run the sync"""
+        asyncio.run(self.replay())
+        logger.debug(f"Found {len(self.data)} dates to sync: {[x['nextFundingTime'] for x in self.data]}")
+        self.write_candles(self.data, timestamp_units="s")
 
-    def pull_data(self):
-        self.candle_order = None
-        endpoint = f"data-feeds/{self.exchange}"
-
-        self.sync(
-            endpoint,
-            #extra_params={"future": self.symbol},
-            start_format="start_time",
-            end_format="end_time",
-            timestamp_units="s",
-            result_key="result",
-            merge_endpoint_results_dict=True,
+    async def replay(self):
+        # replay method returns Async Generator
+        messages = self.client.replay(
+            exchange="ftx",
+            from_date=arrow.get(self.start).format("YYYY-MM-DD"),
+            to_date=arrow.get(self.end).format("YYYY-MM-DD"),
+            filters=[Channel(name="instrument", symbols=[self.symbol])],
         )
+
+        # unpack messages provided by FTX real-time stream:
+        async for local_timestamp, message in messages:
+            # fields in message defined here:
+            #
+            #    https://docs.ftx.com/#get-future
+            #    https://docs.ftx.com/#get-future-stats
+            #
+            # also, there is a collision on "openInterest" and when we
+            # join these two dictionaries one gets obliterated so we will
+            # keep the one that comes with "stats" since that is where
+            # FTX documents it
+
+            # do we have this timestamp already?
+            timestamp = arrow.get(message["data"]["stats"]["nextFundingTime"]).timestamp * 1000  # ms
+            found = [timestamp for x in self.data if x.get("time", 0) == timestamp]
+
+            if not found:
+                # new data point!
+                time = {"time": timestamp}
+                self.data.append(time | message["data"]["info"] | message["data"]["stats"])

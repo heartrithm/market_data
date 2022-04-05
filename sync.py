@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
+import os
+from loguru import logger
+
+import click
+
 from candles.sync_candles import get_sync_candles_class
 from futures.sync_futures import get_sync_futures_class
-from loguru import logger
-import click
-import os
+from tardis import SyncHistorical
 
-COMMANDS = ["candles", "futures"]
+COMMANDS = ["candles", "futures", "historical"]
 logger.level = os.getenv("LOG_LEVEL", "WARNING")
 
 
@@ -41,6 +44,10 @@ def run(*args, **options):  # pragma: no cover
         )
         client.pull_data()
 
+    elif options["command"] == "historical":
+        exchange = options["exchange"].lower()
+        tardis = SyncHistorical(exchange, options["symbol"], interval="1h", start=options["start"], end=options["end"])
+        tardis.sync()
 
 if __name__ == "__main__":
     run()

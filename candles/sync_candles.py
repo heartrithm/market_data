@@ -145,7 +145,10 @@ class BaseSyncCandles(object):
                 )
             elif self.data_type == "futures":
                 # currently based on FTX's data format
-                _time = arrow.utcnow().floor("hour").timestamp * 1000  # ms
+                if "time" not in c:
+                    _time = arrow.utcnow().floor("hour").timestamp * 1000  # ms
+                else:
+                    _time = c["time"]  # when running in hitorical mode, time is provided
                 fields = {}
                 for key, val in c.items():
                     if isinstance(val, str):
