@@ -1,9 +1,10 @@
-from exchanges.apis.ftx import FTXApi
+import sys
 
 from ratelimit import limits, sleep_and_retry
-from candles.sync_candles import BaseSyncCandles
 
-import sys
+from candles.sync_candles import BaseSyncCandles
+from exchanges.apis.ftx import FTXApi
+
 
 IS_PYTEST = "pytest" in sys.modules
 
@@ -12,13 +13,11 @@ def get_sync_futures_class(exchange, symbol, interval=None, start=None, end=None
     """ Abstraction layer that returns an instance of the right SyncRates class """
     if exchange.lower() == "ftx":
         # FTX only supports 1h
-        return SyncFTXFutures(symbol, "1h", start, end, host, data_type="futures")
+        return SyncFTXFutures(symbol, "1h", start=start, end=end, host=host, data_type="futures")
 
 
 class SyncFTXFutures(BaseSyncCandles):
-    """ Sync funding data for FTX
-        Some comes from FTX, some from tardis.dev (historical data).
-    """
+    """ Sync funding data for FTX - who only provides "now." To get historical data, use sync_all.py """
 
     DEFAULT_SYNC_DAYS = 90
     API_MAX_RECORDS = None

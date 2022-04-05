@@ -1,6 +1,9 @@
 -e git+https://github.com/heartrithm/exchanges.git#egg=exchanges
 arrow
+boto3
 influxdb
 loguru
 ratelimit
 requests
+tardis-client
+tardis-dev

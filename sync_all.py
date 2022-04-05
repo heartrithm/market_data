@@ -1,20 +1,44 @@
 #!/usr/bin/env python3
 """ Quick and dirty script to automate pulling *all symbols for an exchange. """
-from candles.sync_candles import get_sync_candles_class
-from fututres.sync_futures import get_sync_futures_class
+import sys
+
 import arrow
 import requests
-import sys
+from loguru import logger
+from tardis_dev import get_exchange_details
+
+from candles.sync_candles import get_sync_candles_class
+from tardis import SyncHistorical
 
 END = arrow.utcnow()
 
 
-def ftx():
-    """Sync all perpetual futures' data"""
+def ftx(days_ago=8):
+    """ Comes from tardis data, as FTX doesn't provide history """
+
+    symbols = []
     for future in requests.get("https://ftx.com/api/futures").json()["result"]:
-        if "PERP" not in future["name"]:
-            continue
-        get_sync_futures_class(exchange="ftx", symbol=future["name"], start="2018-01-01", end=END,).pull_data()
+        if "PERP" in future["name"]:
+            symbols.append(future["name"])
+
+    exchange = "ftx"
+    exchange_details = get_exchange_details(exchange)
+
+    # iterate over and download all data for every symbol
+    for details in exchange_details["datasets"]["symbols"]:
+        if details["id"] in symbols:
+            start, end = (
+                arrow.get(details["availableSince"]).format("YYYY-MM-DD"),
+                arrow.get(details["availableTo"]).format("YYYY-MM-DD"),
+            )
+            logger.debug(f"{details['id']} available from {start} to {end} ...only syncing the last {days_ago} days "
+                    "currently though :)")
+
+            if days_ago:
+                start = END.shift(days=-int(days_ago)).format("YYYY-MM-DD")
+
+            tardis = SyncHistorical(exchange, details["id"], interval="1h", start=start, end=end)
+            tardis.sync()
 
 
 def bitfinex():
@@ -66,4 +90,4 @@ def binance():
 
 
 if "__main__" in __name__:
-    locals()[sys.argv[1]]()
+    locals()[sys.argv[1]](*sys.argv[2:])
