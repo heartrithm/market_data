@@ -36,7 +36,8 @@ def ftx(days_ago=8):
 
             if days_ago:
                 start = END.shift(days=-int(days_ago)).format("YYYY-MM-DD")
-
+            if end < start:  # e.g. days_ago=8 and the PERP was delisted a year ago
+                continue
             tardis = SyncHistorical(exchange, details["id"], interval="1h", start=start, end=end)
             tardis.sync()
 
