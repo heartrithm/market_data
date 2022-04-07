@@ -15,6 +15,7 @@ class SyncHistorical(BaseSyncCandles):
     data and decides whether it's a tag or a field.
     """
     EXCHANGE = "ftx"
+    MAX_API_RECORDS = None
 
     def __init__(self, exchange, symbol, interval, start=None, end=None, data_type="futures"):
         self.exchange = exchange
@@ -28,7 +29,7 @@ class SyncHistorical(BaseSyncCandles):
         super().__init__(self.symbol, self.interval, start=self.start, end=self.end, data_type=self.data_type)
 
     def api_client(self):
-        return TardisClient(api_key=get_aws_secret("tardis.dev")["api_key"])
+        return TardisClient(api_key=get_aws_secret("tardis.dev").get("api_key"))
 
     def sync(self):
         """Run the sync"""
@@ -58,7 +59,7 @@ class SyncHistorical(BaseSyncCandles):
             # FTX documents it
 
             # do we have this timestamp already?
-            timestamp = arrow.get(message["data"]["stats"]["nextFundingTime"]).timestamp * 1000  # ms
+            timestamp = arrow.get(message["data"]["stats"]["nextFundingTime"]).timestamp
             found = [timestamp for x in self.data if x.get("time", 0) == timestamp]
 
             if not found:

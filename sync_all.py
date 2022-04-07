@@ -17,6 +17,7 @@ def ftx(days_ago=8):
     """ Comes from tardis data, as FTX doesn't provide history """
 
     symbols = []
+    excluded_symbols = []
     for future in requests.get("https://ftx.com/api/futures").json()["result"]:
         if "PERP" in future["name"]:
             symbols.append(future["name"])
@@ -26,10 +27,10 @@ def ftx(days_ago=8):
 
     # iterate over and download all data for every symbol
     for details in exchange_details["datasets"]["symbols"]:
-        if details["id"] in symbols:
+        if details["id"] in symbols and details["id"] not in excluded_symbols:
             start, end = (
-                arrow.get(details["availableSince"]).format("YYYY-MM-DD"),
-                arrow.get(details["availableTo"]).format("YYYY-MM-DD"),
+                arrow.get(details["availableSince"]).isoformat(),
+                arrow.get(details["availableTo"]).isoformat(),
             )
             logger.debug(f"{details['id']} available from {start} to {end} ...only syncing the last {days_ago} days "
                     "currently though :)")

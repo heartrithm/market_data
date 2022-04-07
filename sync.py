@@ -8,7 +8,7 @@ from candles.sync_candles import get_sync_candles_class
 from futures.sync_futures import get_sync_futures_class
 from tardis import SyncHistorical
 
-COMMANDS = ["candles", "futures", "historical"]
+COMMANDS = ["candles", "futures", "historical_futures"]
 logger.level = os.getenv("LOG_LEVEL", "WARNING")
 
 
@@ -35,16 +35,27 @@ def run(*args, **options):  # pragma: no cover
 
     elif options["command"] == "futures":
         exchange = options["exchange"].lower()
-        client = get_sync_futures_class(
+        futures_client = get_sync_futures_class(
             exchange=exchange,
             symbol=options["symbol"],
             interval=options["interval"],
             start=options["start"],
             end=options["end"],
+            data_type="futures",
         )
-        client.pull_data()
+        futures_client.pull_data()
 
-    elif options["command"] == "historical":
+        rates_client = get_sync_futures_class(
+            exchange=exchange,
+            symbol=options["symbol"],
+            interval=options["interval"],
+            start=options["start"],
+            end=options["end"],
+            data_type="funding_rates",
+        )
+        rates_client.pull_data()
+
+    elif options["command"] == "historical_futures":
         exchange = options["exchange"].lower()
         tardis = SyncHistorical(exchange, options["symbol"], interval="1h", start=options["start"], end=options["end"])
         tardis.sync()

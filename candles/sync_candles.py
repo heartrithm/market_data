@@ -34,7 +34,7 @@ class BaseSyncCandles(object):
     EXCHANGE = None
     DEFAULT_SYNC_DAYS = 90
     start = end = client = None
-    ALLOWED_DATA_TYPES = ["candles", "futures"]
+    ALLOWED_DATA_TYPES = ["candles", "futures", "funding_rates"]
 
     def __init__(self, symbol, interval, start=None, end=None, host=None, data_type="candles"):
         self.candle_order = None
@@ -111,16 +111,18 @@ class BaseSyncCandles(object):
         out = []
         tags = {"symbol": self.symbol, "interval": self.interval}
 
-        if extra_tags:
-            assert "symbol" not in extra_tags, "Not allowed to override symbol when you've already instantiated"
-            " the class with a specific symbol."
-            assert "interval" not in extra_tags, "Not allowed to override interval when you've already instantiated"
-            " the class with a specific interval."
+        def _check_extra_tags(tags):
+            if extra_tags:
+                assert "symbol" not in extra_tags, "Not allowed to override symbol when you've already instantiated"
+                " the class with a specific symbol."
+                assert "interval" not in extra_tags, "Not allowed to override interval when you've already instantiated"
+                " the class with a specific interval."
+                tags.update(extra_tags)
 
-            tags.update(extra_tags)
-
+        _check_extra_tags(tags)
         for c in candles:
             if self.data_type == "candles":
+                # tags don't change in this case, so just use existing tags var
                 if isinstance(c, dict):
                     c = list(c.values())  # sfox API returns ordered dicts instead of a list
                 _open = float(c[self.candle_order["open"]])
@@ -143,12 +145,18 @@ class BaseSyncCandles(object):
                         "fields": {"open": _open, "high": _high, "low": _low, "close": _close, "volume": _volume},
                     }
                 )
-            elif self.data_type == "futures":
+            elif self.data_type == "futures" or self.data_type == "funding_rates":
                 # currently based on FTX's data format
                 if "time" not in c:
-                    _time = arrow.utcnow().floor("hour").timestamp * 1000  # ms
+                    _time = int(arrow.utcnow().floor("hour").timestamp * 1e3)  # ms
                 else:
-                    _time = c["time"]  # when running in hitorical mode, time is provided
+                    _time = int(arrow.get(c["time"]).timestamp)
+                    if timestamp_units == "s":
+                        _time = int(_time * 1e3)
+                    del c["time"]  # don't try to add it as a tag
+
+                tags = {"symbol": self.symbol, "interval": self.interval}
+                _check_extra_tags(tags)
                 fields = {}
                 for key, val in c.items():
                     if isinstance(val, str):
@@ -162,7 +170,7 @@ class BaseSyncCandles(object):
 
                 out.append(
                     {
-                        "measurement": "futures_" + self.interval,
+                        "measurement": f"{self.data_type}_{self.interval}",
                         "tags": tags,
                         "time": _time,
                         "fields": fields,
