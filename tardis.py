@@ -34,7 +34,7 @@ class SyncHistorical(BaseSyncCandles):
     def sync(self):
         """Run the sync"""
         asyncio.run(self.replay())
-        logger.debug(f"Found {len(self.data)} dates to sync: {[x['nextFundingTime'] for x in self.data]}")
+        logger.debug(f"Found {len(self.data)} dates to sync: {[arrow.get(x['time']).isoformat() for x in self.data]}")
         self.write_candles(self.data, timestamp_units="s")
 
     async def replay(self):
@@ -65,4 +65,5 @@ class SyncHistorical(BaseSyncCandles):
             if not found:
                 # new data point!
                 time = {"time": timestamp}
+                del message["data"]["stats"]["nextFundingTime"]
                 self.data.append(time | message["data"]["info"] | message["data"]["stats"])

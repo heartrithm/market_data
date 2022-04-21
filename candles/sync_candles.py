@@ -147,6 +147,7 @@ class BaseSyncCandles(object):
                 )
             elif self.data_type == "futures" or self.data_type == "funding_rates":
                 # currently based on FTX's data format
+                BANNED_TAGS = ["nextFundingTime"]
                 if "time" not in c:
                     _time = int(arrow.utcnow().floor("hour").timestamp * 1e3)  # ms
                 else:
@@ -159,7 +160,7 @@ class BaseSyncCandles(object):
                 _check_extra_tags(tags)
                 fields = {}
                 for key, val in c.items():
-                    if isinstance(val, str):
+                    if isinstance(val, str) and key not in BANNED_TAGS:
                         tags[key] = val
                     elif isinstance(val, bool):
                         tags[key] = str(val).lower()
