@@ -4,8 +4,6 @@ import sys
 
 import arrow
 import requests
-from loguru import logger
-from tardis_dev import get_exchange_details
 
 from candles.sync_candles import get_sync_candles_class
 from tardis import SyncHistorical
@@ -17,38 +15,14 @@ def ftx(days_ago=8):
     """Comes from tardis data, as FTX doesn't provide history"""
 
     symbols = []
-    excluded_symbols = []
     for future in requests.get("https://ftx.com/api/futures").json()["result"]:
         if "PERP" in future["name"]:
             symbols.append(future["name"])
 
     exchange = "ftx"
-    exchange_details = get_exchange_details(exchange)
-
-    """for details in exchange_details["datasets"]["symbols"]:
-        if details["id"] in symbols and details["id"] not in excluded_symbols:
-            start, end = (
-                arrow.get(details["availableSince"]).isoformat(),
-                arrow.get(details["availableTo"]).isoformat(),
-            )
-            logger.debug(f"{details['id']} available from {start} to {end} ...only syncing the last {days_ago} days "
-                    "currently though :)")
-
-            if days_ago:
-                start = END.shift(days=-int(days_ago)).format("YYYY-MM-DD")
-            if end < start:  # e.g. days_ago=8 and the PERP was delisted a year ago
-                continue
-    """
     if days_ago:
         start = END.shift(days=-int(days_ago)).format("YYYY-MM-DD")
-    tardis = SyncHistorical(
-        exchange,
-        "BTC-PERP",
-        interval="1h",
-        start=start,
-        end=None,
-        symbols=symbols,
-    )
+    tardis = SyncHistorical(exchange, "BTC-PERP", interval="1h", start=start, end=None, symbols=symbols,)
     tardis.sync()
 
 
