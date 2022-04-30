@@ -17,9 +17,10 @@ class SyncHistorical(BaseSyncCandles):
     EXCHANGE = "ftx"
     MAX_API_RECORDS = None
 
-    def __init__(self, exchange, symbol, interval, start=None, end=None, data_type="futures"):
+    def __init__(self, exchange, symbol, interval, start=None, end=None, data_type="futures", symbols=[]):
         self.exchange = exchange
         self.symbol = symbol
+        self.symbols = symbols
         self.interval = interval
         self.start = start
         self.end = end
@@ -33,9 +34,8 @@ class SyncHistorical(BaseSyncCandles):
 
     def sync(self):
         """Run the sync"""
+        self.last_timestamp = {"symbol": "timestamp"}
         asyncio.run(self.replay())
-        logger.debug(f"Found {len(self.data)} dates to sync: {[arrow.get(x['time']).isoformat() for x in self.data]}")
-        self.write_candles(self.data, timestamp_units="s")
 
     async def replay(self):
         # replay method returns Async Generator
@@ -43,7 +43,8 @@ class SyncHistorical(BaseSyncCandles):
             exchange="ftx",
             from_date=arrow.get(self.start).format("YYYY-MM-DD"),
             to_date=arrow.get(self.end).format("YYYY-MM-DD"),
-            filters=[Channel(name="instrument", symbols=[self.symbol])],
+            #filters=[Channel(name="instrument", symbols=self.symbols or [self.symbol])],
+            filters=[Channel(name="instrument", symbols=self.symbols)],
         )
 
         # unpack messages provided by FTX real-time stream:
@@ -58,12 +59,13 @@ class SyncHistorical(BaseSyncCandles):
             # keep the one that comes with "stats" since that is where
             # FTX documents it
 
-            # do we have this timestamp already?
-            timestamp = arrow.get(message["data"]["stats"]["nextFundingTime"]).timestamp
-            found = [timestamp for x in self.data if x.get("time", 0) == timestamp]
+            # do we have this timestamp already? Only changes hourly, but they have more (duplicate) data.
+            time = {"time": arrow.get(message["data"]["stats"]["nextFundingTime"]).timestamp}
+            self.symbol = message["data"]["info"]["name"]  # required to be set for self.write_candles()
 
-            if not found:
-                # new data point!
-                time = {"time": timestamp}
-                del message["data"]["stats"]["nextFundingTime"]
-                self.data.append(time | message["data"]["info"] | message["data"]["stats"])
+            if self.last_timestamp.get(self.symbol, 0) != time:
+                del message["data"]["stats"]["nextFundingTime"]  # don't want this as a tag
+                logger.trace(f"Writing: {arrow.get(time['time'])}:{message}")
+
+                self.write_candles([time | message["data"]["info"] | message["data"]["stats"]], timestamp_units="s")
+                self.last_timestamp[self.symbol] = time

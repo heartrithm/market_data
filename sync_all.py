@@ -14,7 +14,7 @@ END = arrow.utcnow()
 
 
 def ftx(days_ago=8):
-    """ Comes from tardis data, as FTX doesn't provide history """
+    """Comes from tardis data, as FTX doesn't provide history"""
 
     symbols = []
     excluded_symbols = []
@@ -25,8 +25,7 @@ def ftx(days_ago=8):
     exchange = "ftx"
     exchange_details = get_exchange_details(exchange)
 
-    # iterate over and download all data for every symbol
-    for details in exchange_details["datasets"]["symbols"]:
+    """for details in exchange_details["datasets"]["symbols"]:
         if details["id"] in symbols and details["id"] not in excluded_symbols:
             start, end = (
                 arrow.get(details["availableSince"]).isoformat(),
@@ -39,8 +38,18 @@ def ftx(days_ago=8):
                 start = END.shift(days=-int(days_ago)).format("YYYY-MM-DD")
             if end < start:  # e.g. days_ago=8 and the PERP was delisted a year ago
                 continue
-            tardis = SyncHistorical(exchange, details["id"], interval="1h", start=start, end=end)
-            tardis.sync()
+    """
+    if days_ago:
+        start = END.shift(days=-int(days_ago)).format("YYYY-MM-DD")
+    tardis = SyncHistorical(
+        exchange,
+        "BTC-PERP",
+        interval="1h",
+        start=start,
+        end=None,
+        symbols=symbols,
+    )
+    tardis.sync()
 
 
 def bitfinex():
