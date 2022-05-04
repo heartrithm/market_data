@@ -14,14 +14,17 @@ END = arrow.utcnow()
 def ftx(days_ago=14):
     """FTX candle data"""
 
-    excluded_symbols = ["BULL", "BEAR", "HEDGE", "HALF"]
+    excluded_symbols = ["BULL", "BEAR", "HEDGE", "HALF", "MOVE"]
 
-    def _has_digits(string):
-        return any(char.isdigit() for char in string)
+    def _is_future(string):
+        # to filter out futures like BTC-0624
+        return any(char.isdigit() for char in string.split("-")[-1])
 
     for symbol in requests.get("https://ftx.com/api/markets").json()["result"]:
         symbol = symbol["name"]
-        if symbol not in excluded_symbols and not _has_digits(symbol):
+        if symbol not in excluded_symbols and not _is_future(symbol):
+            print(symbol)
+            continue
             client = get_sync_candles_class(
                 exchange="ftx", symbol=symbol, interval="1m", start=arrow.utcnow().shift(days=-int(days_ago)), end=END,
             )
