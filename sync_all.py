@@ -23,8 +23,6 @@ def ftx(days_ago=14):
     for symbol in requests.get("https://ftx.com/api/markets").json()["result"]:
         symbol = symbol["name"]
         if symbol not in excluded_symbols and not _is_future(symbol):
-            print(symbol)
-            continue
             client = get_sync_candles_class(
                 exchange="ftx", symbol=symbol, interval="1m", start=arrow.utcnow().shift(days=-int(days_ago)), end=END,
             )
