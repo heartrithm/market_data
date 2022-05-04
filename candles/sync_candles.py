@@ -1,5 +1,6 @@
 from exchanges.apis.bitfinex import BitfinexApi
 from exchanges.apis.binance import BinanceApi
+from exchanges.apis.ftx import FTXApi
 from exchanges.apis.sfox import SFOXApi
 
 from ratelimit import limits, sleep_and_retry
@@ -20,6 +21,8 @@ def get_sync_candles_class(exchange, symbol, interval, start=None, end=None, hos
         return SyncBitfinexCandles(symbol, interval, start, end, host)
     if exchange.lower() == "binance":
         return SyncBinanceCandles(symbol, interval, start, end, host)
+    if exchange.lower() == "ftx":
+        return SyncFTXCandles(symbol, interval, start, end, host)
     if exchange.lower() == "sfox":
         return SyncSFOXCandles(symbol, interval, start, end, host)
 
@@ -124,19 +127,26 @@ class BaseSyncCandles(object):
             if self.data_type == "candles":
                 # tags don't change in this case, so just use existing tags var
                 if isinstance(c, dict):
-                    c = list(c.values())  # sfox API returns ordered dicts instead of a list
-                _open = float(c[self.candle_order["open"]])
-                _high = float(c[self.candle_order["high"]])
-                _low = float(c[self.candle_order["low"]])
-                _close = float(c[self.candle_order["close"]])
-                _volume = float(c[self.candle_order["volume"]])
+                    _time = c[self.candle_dict_keys["ts"]]
+                    _open = c[self.candle_dict_keys["open"]]
+                    _high = c[self.candle_dict_keys["high"]]
+                    _low = c[self.candle_dict_keys["low"]]
+                    _close = c[self.candle_dict_keys["close"]]
+                    _volume = c[self.candle_dict_keys["volume"]]
+                else:
+                    _time = c[self.candle_order["ts"]]
+                    _open = float(c[self.candle_order["open"]])
+                    _high = float(c[self.candle_order["high"]])
+                    _low = float(c[self.candle_order["low"]])
+                    _close = float(c[self.candle_order["close"]])
+                    _volume = float(c[self.candle_order["volume"]])
                 assert _low <= _high, f"Low price must be <= the High price. Candle: {c}"
                 assert _low <= _close, f"Low price must be <= the Close price. Candle: {c}"
                 assert _high >= _open, f"High price must be <= the Open price. Candle: {c}"
+
                 if timestamp_units == "s":  # write in ms, as that's how we query
-                    _time = int(c[self.candle_order["ts"]] * 1e3)
-                else:
-                    _time = int(c[self.candle_order["ts"]])
+                    _time = int(arrow.get(_time).timestamp * 1e3)
+
                 out.append(
                     {
                         "measurement": "candles_" + self.interval,
@@ -170,12 +180,7 @@ class BaseSyncCandles(object):
                         fields[key] = val
 
                 out.append(
-                    {
-                        "measurement": f"{self.data_type}_{self.interval}",
-                        "tags": tags,
-                        "time": _time,
-                        "fields": fields,
-                    }
+                    {"measurement": f"{self.data_type}_{self.interval}", "tags": tags, "time": _time, "fields": fields}
                 )
 
         self.influx_client.write_points(out)
@@ -325,12 +330,23 @@ class BaseSyncCandles(object):
                 if reverse_order:
                     res.reverse()
                 if merge_endpoint_results_dict:
-                    res_formatted = res | res_formatted  # union of two dicts
+                    res_formatted = res | res_formatted
                 else:
                     res_formatted += res  # for list use cases
             if not isinstance(res_formatted, list):
                 res_formatted = [res_formatted]
             self.write_candles(res_formatted, extra_tags, timestamp_units)
+
+    def _interval_to_seconds(self, period: str) -> int:
+        """Converts standard 1m, 1h, 7d interval strings to seconds, as some exchanges require that."""
+
+        if self.interval.endswith("m"):
+            period = 60 * int(self.interval.rstrip("m"))
+        elif self.interval.endswith("h"):
+            period = 60 * 60 * int(self.interval.rstrip("h"))
+        elif self.interval.endswith("d"):
+            period = 60 * 60 * 24 * int(self.interval.rstrip("d"))
+        return period
 
 
 class SyncSFOXCandles(BaseSyncCandles):
@@ -354,15 +370,16 @@ class SyncSFOXCandles(BaseSyncCandles):
         return self.client.brequest(endpoint=endpoint, params=params)
 
     def pull_data(self):
-        self.candle_order = {"open": 0, "high": 1, "low": 2, "close": 3, "volume": 4, "ts": 5}
+        self.candle_dict_keys = {
+            "ts": "start_time",
+            "open": "open_price",
+            "high": "high_price",
+            "low": "low_price",
+            "close": "close_price",
+            "volume": "volume",
+        }
         endpoint = "candlesticks"
-        # sfox period requires seconds
-        if self.interval.endswith("m"):
-            period = 60 * int(self.interval.rstrip("m"))
-        elif self.interval.endswith("h"):
-            period = 60 * 60 * int(self.interval.rstrip("h"))
-        elif self.interval.endswith("d"):
-            period = 60 * 60 * 24 * int(self.interval.rstrip("d"))
+        period = self._interval_to_seconds(self.interval)
 
         self.sync(
             endpoint,
@@ -377,7 +394,7 @@ class SyncBinanceCandles(BaseSyncCandles):
     """Sync candles for Binance"""
 
     DEFAULT_SYNC_DAYS = 90
-    API_MAX_RECORDS = 1000
+    API_MAX_RECORDS = 10000
     API_CALLS_PER_MIN = 100000 if IS_PYTEST else 1200
     EXCHANGE = "binance"
 
@@ -401,6 +418,46 @@ class SyncBinanceCandles(BaseSyncCandles):
             extra_params={"interval": self.interval, "symbol": self.symbol},
             start_format="startTime",
             end_format="endTime",
+        )
+
+
+class SyncFTXCandles(BaseSyncCandles):
+    """Sync candles for Binance"""
+
+    DEFAULT_SYNC_DAYS = 90
+    API_MAX_RECORDS = 10000
+    API_CALLS_PER_MIN = 100000 if IS_PYTEST else 120
+    EXCHANGE = "ftx"
+
+    def api_client(self):
+        if not self.client:
+            # Cache/reuse the client object so that sessions are re-used, which enables HTTP Keep-Alive
+            self.client = FTXApi()
+        return self.client
+
+    @sleep_and_retry
+    @limits(calls=API_CALLS_PER_MIN, period=60)  # calls per minute
+    def call_api(self, endpoint, params):
+        """FTX specific rate limits and brequest"""
+        return self.client.brequest(api_version=None, endpoint=endpoint, params=params)
+
+    def pull_data(self):
+        self.candle_dict_keys = {
+            "ts": "startTime",
+            "open": "open",
+            "high": "high",
+            "low": "low",
+            "close": "close",
+            "volume": "volume",
+        }
+        endpoint = f"markets/{self.symbol}/candles"
+        self.sync(
+            endpoint,
+            extra_params={"resolution": self._interval_to_seconds(self.interval)},
+            result_key="result",
+            start_format="start_time",
+            end_format="end_time",
+            timestamp_units="s",
         )
 
 

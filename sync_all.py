@@ -11,7 +11,24 @@ from tardis import SyncHistorical
 END = arrow.utcnow()
 
 
-def ftx(days_ago=8):
+def ftx(days_ago=14):
+    """FTX candle data"""
+
+    excluded_symbols = ["BULL", "BEAR", "HEDGE", "HALF"]
+
+    def _has_digits(string):
+        return any(char.isdigit() for char in string)
+
+    for symbol in requests.get("https://ftx.com/api/markets").json()["result"]:
+        symbol = symbol["name"]
+        if symbol not in excluded_symbols and not _has_digits(symbol):
+            client = get_sync_candles_class(
+                exchange="ftx", symbol=symbol, interval="1m", start=arrow.utcnow().shift(days=-int(days_ago)), end=END,
+            )
+            client.pull_data()
+
+
+def ftx_futures(days_ago=8):
     """Comes from tardis data, as FTX doesn't provide history"""
 
     symbols = []
