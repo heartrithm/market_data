@@ -11,7 +11,7 @@ from tardis import SyncHistorical
 END = arrow.utcnow()
 
 
-def ftx(days_ago=14):
+def ftx(days_ago=14, host=None):
     """FTX candle data"""
 
     excluded_symbols = ["BULL", "BEAR", "HEDGE", "HALF", "MOVE"]
@@ -26,7 +26,12 @@ def ftx(days_ago=14):
         symbol = symbol["name"]
         if not _is_excluded(symbol):
             client = get_sync_candles_class(
-                exchange="ftx", symbol=symbol, interval="1m", start=arrow.utcnow().shift(days=-int(days_ago)), end=END,
+                exchange="ftx",
+                symbol=symbol,
+                interval="1m",
+                host=host,
+                start=arrow.utcnow().shift(days=-int(days_ago)),
+                end=END,
             )
             client.pull_data()
 
@@ -42,7 +47,14 @@ def ftx_futures(days_ago=8):
     exchange = "ftx"
     if days_ago:
         start = END.shift(days=-int(days_ago)).format("YYYY-MM-DD")
-    tardis = SyncHistorical(exchange, "BTC-PERP", interval="1h", start=start, end=None, symbols=symbols,)
+    tardis = SyncHistorical(
+        exchange,
+        "BTC-PERP",
+        interval="1h",
+        start=start,
+        end=None,
+        symbols=symbols,
+    )
     tardis.sync()
 
 
