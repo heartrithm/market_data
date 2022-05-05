@@ -16,13 +16,15 @@ def ftx(days_ago=14):
 
     excluded_symbols = ["BULL", "BEAR", "HEDGE", "HALF", "MOVE"]
 
-    def _is_future(string):
-        # to filter out futures like BTC-0624
-        return any(char.isdigit() for char in string.split("-")[-1])
+    def _is_excluded(symbol):
+        # filter out futures like BTC-0624, and anything in excluded_symbols
+        if [x for x in excluded_symbols if x in symbol] or any(char.isdigit() for char in symbol.split("-")[-1]):
+            return True
+        return False
 
     for symbol in requests.get("https://ftx.com/api/markets").json()["result"]:
         symbol = symbol["name"]
-        if symbol not in excluded_symbols and not _is_future(symbol):
+        if not _is_excluded(symbol):
             client = get_sync_candles_class(
                 exchange="ftx", symbol=symbol, interval="1m", start=arrow.utcnow().shift(days=-int(days_ago)), end=END,
             )
