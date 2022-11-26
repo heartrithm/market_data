@@ -10,7 +10,7 @@ aiohttp==3.8.1
     #   tardis-dev
 aiosignal==1.2.0
     # via aiohttp
-arrow==0.15.7
+arrow==1.2.3
     # via
     #   -r requirements.in
     #   exchanges
