@@ -11,12 +11,18 @@ jobs:
         python-version: ["3.7.x", "3.8.x", "3.9.x", "3.10.x"]
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Check out repo
+        uses: actions/checkout@v3
+
+      - name: Setup InfluxDB
+        uses: influxdata/influxdb-action@v3
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
+
       - name: Install dependencies
         run: |
           pip install -r requirements-test.txt
