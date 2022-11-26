@@ -4,4 +4,5 @@ coveralls
 freezegun
 pyflakes
 pytest
+pytest-cov
 requests_mock
