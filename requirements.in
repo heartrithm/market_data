@@ -1,6 +1,6 @@
--e git+https://github.com/heartrithm/exchanges.git#egg=exchanges
 arrow
 boto3
+-e git+https://github.com/heartrithm/exchanges.git#egg=exchanges
 influxdb
 loguru
 ratelimit

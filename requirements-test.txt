@@ -1,7 +1,7 @@
 -r requirements.txt
-pyflakes
-requests_mock
 coverage
 coveralls
 freezegun
+pyflakes
 pytest
+requests_mock
