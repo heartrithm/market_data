@@ -1,8 +1,8 @@
-import arrow
 import asyncio
 
 from loguru import logger
-from tardis_client import TardisClient, Channel
+from tardis_client import Channel, TardisClient
+import arrow
 
 from candles.sync_candles import BaseSyncCandles
 from utils import get_aws_secret
@@ -14,6 +14,7 @@ class SyncHistorical(BaseSyncCandles):
     so that write_candles() uses the same logic as when we're sync'ing from FTX directly, i.e. it parses all
     data and decides whether it's a tag or a field.
     """
+
     EXCHANGE = "ftx"
     MAX_API_RECORDS = None
 
@@ -43,7 +44,7 @@ class SyncHistorical(BaseSyncCandles):
             exchange="ftx",
             from_date=arrow.get(self.start).format("YYYY-MM-DD"),
             to_date=arrow.get(self.end).format("YYYY-MM-DD"),
-            #filters=[Channel(name="instrument", symbols=self.symbols or [self.symbol])],
+            # filters=[Channel(name="instrument", symbols=self.symbols or [self.symbol])],
             filters=[Channel(name="instrument", symbols=self.symbols)],
         )
 

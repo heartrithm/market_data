@@ -2,12 +2,12 @@ import datetime
 import math
 import sys
 
-import arrow
 from exchanges.apis.binance import BinanceApi
 from exchanges.apis.bitfinex import BitfinexApi
 from exchanges.apis.sfox import SFOXApi
 from loguru import logger
 from ratelimit import limits, sleep_and_retry
+import arrow
 
 from candles.candles import Candles
 

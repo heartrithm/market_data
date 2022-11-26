@@ -1,9 +1,10 @@
 from decimal import Decimal as D
+import os
+import sys
+
 from influxdb import InfluxDBClient
 from loguru import logger
 import arrow
-import sys
-import os
 
 IS_PYTEST = "pytest" in sys.modules
 
@@ -29,7 +30,9 @@ class Candles(object):
         self.data_type = data_type
         if host:
             self.client = InfluxDBClient(
-                host=host, port=os.getenv("CANDLES_DB_PORT", "8086"), timeout=self.INFLUX_TIMEOUT,
+                host=host,
+                port=os.getenv("CANDLES_DB_PORT", "8086"),
+                timeout=self.INFLUX_TIMEOUT,
             )
         else:
             self.client = InfluxDBClient(

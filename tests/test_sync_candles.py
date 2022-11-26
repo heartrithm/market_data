@@ -1,10 +1,12 @@
+import re
+
 from freezegun import freeze_time
-from requests_mock import mock, ANY
+from loguru import logger
+from requests_mock import ANY, mock
+import arrow
+
 from candles.candles import Candles
 from candles.sync_candles import get_sync_candles_class
-from loguru import logger
-import arrow
-import re
 
 
 class TestSyncSFOXCandles:
@@ -32,7 +34,9 @@ class TestSyncSFOXCandles:
             client = get_sync_candles_class(exchange=exchange, symbol=symbol, interval=interval, start=start)
             with mock() as m:
                 m.register_uri(
-                    "GET", re.compile(r"chartdata.sfox.com\/.*"), text=btc_candles,
+                    "GET",
+                    re.compile(r"chartdata.sfox.com\/.*"),
+                    text=btc_candles,
                 )
                 m.register_uri(ANY, re.compile(r"localhost:8086.*"), real_http=True)
                 client.pull_data()
@@ -79,7 +83,9 @@ class TestSyncBitfinexCandles:
             client = get_sync_candles_class(exchange=exchange, symbol=symbol, interval=interval, start=start)
             with mock() as m:
                 m.register_uri(
-                    "GET", re.compile(r"api-pub.bitfinex.com\/v2.*"), text=funding_candles,
+                    "GET",
+                    re.compile(r"api-pub.bitfinex.com\/v2.*"),
+                    text=funding_candles,
                 )
                 m.register_uri(ANY, re.compile(r"localhost:8086.*"), real_http=True)
                 client.pull_data()
@@ -178,7 +184,7 @@ class TestCandles:
             assert res is not None
 
     def test_get_percentile(self):
-        """ Test percentile query """
+        """Test percentile query"""
         exchange = "bitfinex"
         symbol = "fUSD"
         interval = "1m"
@@ -192,7 +198,7 @@ class TestCandles:
         assert res > 0
 
     def test_get_lowhigh(self):
-        """ Test fetching actual data that was populated in previous tests (of syncs) """
+        """Test fetching actual data that was populated in previous tests (of syncs)"""
         exchange = "bitfinex"
         symbol = "fUSD"
         interval = "1m"
