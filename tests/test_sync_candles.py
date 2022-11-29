@@ -54,8 +54,8 @@ class TestSyncSFOXCandles:
             exchange_req = reqs[0]  # this only takes 1 query on sfox
             # NOTE: we aren't dividing by 1000 here, as it isn't being fetched form influx with precision=ms.
             # Exchange data is seconds.
-            assert int(arrow.get(float(exchange_req.qs["starttime"][0])).timestamp) == start
-            assert int(arrow.get(float(exchange_req.qs["endtime"][0])).timestamp) == end
+            assert int(arrow.get(float(exchange_req.qs["starttime"][0])).int_timestamp) == start
+            assert int(arrow.get(float(exchange_req.qs["endtime"][0])).int_timestamp) == end
 
 
 class TestSyncBitfinexCandles:
@@ -102,8 +102,8 @@ class TestSyncBitfinexCandles:
             reqs = [x for x in m.request_history if x.hostname.startswith("api-pub.bitfinex")]
             first_exchange_req = reqs[0]
             last_exchange_req = reqs[1]
-            assert arrow.get(float(first_exchange_req.qs["start"][0]) / 1000).timestamp == start
-            assert arrow.get(float(last_exchange_req.qs["end"][0]) / 1000).timestamp == end
+            assert arrow.get(float(first_exchange_req.qs["start"][0]) / 1_000).int_timestamp == start
+            assert arrow.get(float(last_exchange_req.qs["end"][0]) / 1_000).int_timestamp == end
 
         start = 1590889920.0
         end = 1590890040.0
@@ -118,8 +118,8 @@ class TestSyncBitfinexCandles:
             reqs = [x for x in m.request_history if x.hostname.startswith("api-pub.bitfinex")]
             first_exchange_req = reqs[0]
             last_exchange_req = reqs[1]
-            assert arrow.get(float(first_exchange_req.qs["start"][0]) / 1000).timestamp == start
-            assert arrow.get(float(last_exchange_req.qs["end"][0]) / 1000).timestamp == end
+            assert arrow.get(float(first_exchange_req.qs["start"][0]) / 1000).int_timestamp == start
+            assert arrow.get(float(last_exchange_req.qs["end"][0]) / 1000).int_timestamp == end
 
 
 class TestCandles:
