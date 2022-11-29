@@ -30,7 +30,7 @@ class BaseSyncCandles(object):
     """
 
     BIN_SIZES = {"1m": 1, "1h": 60, "1d": 1440}
-    API_MAX_RECORDS = 10000
+    API_MAX_RECORDS = 10_000
     EXCHANGE = None
     DEFAULT_SYNC_DAYS = 90
     start = end = client = None
@@ -41,9 +41,9 @@ class BaseSyncCandles(object):
         self.symbol = symbol
         self.interval = interval
         if start:
-            self.start = arrow.get(start).timestamp
+            self.start = arrow.get(start).int_timestamp
         if end:
-            self.end = arrow.get(end).timestamp
+            self.end = arrow.get(end).int_timestamp
         self.data_type = data_type
         assert self.data_type in self.ALLOWED_DATA_TYPES
 
@@ -78,8 +78,8 @@ class BaseSyncCandles(object):
 
         # NOTE: all candles are stored in influx as ms. So convert to s when retrieving, and later we up-convert to ms
         # or us if required by the exchange. When querying manually, run influx with: `influx -precision=ms` /!\
-        earliest = arrow.get(list(earliest)[0][0]["time"] / 1000).timestamp if earliest else 0
-        latest = arrow.get(list(latest)[0][0]["time"] / 1000).timestamp if latest else 0
+        earliest = arrow.get(list(earliest)[0][0]["time"] / 1_000).int_timestamp if earliest else 0
+        latest = arrow.get(list(latest)[0][0]["time"] / 1_000).int_timestamp if latest else 0
         return earliest, latest
 
     def get_iterations_for_range(self, batch_limit):
@@ -152,7 +152,7 @@ class BaseSyncCandles(object):
                 assert _high >= _open, f"High price must be <= the Open price. Candle: {c}"
 
                 if timestamp_units == "s":  # write in ms, as that's how we query
-                    _time = int(arrow.get(_time).timestamp * 1e3)
+                    _time = int(arrow.get(_time).int_timestamp * 1_000)
 
                 out.append(
                     {
@@ -172,11 +172,11 @@ class BaseSyncCandles(object):
                 # currently based on FTX's data format
                 BANNED_TAGS = ["nextFundingTime"]
                 if "time" not in c:
-                    _time = int(arrow.utcnow().floor("hour").timestamp * 1e3)  # ms
+                    _time = int(arrow.utcnow().floor("hour").int_timestamp * 1_000)  # ms
                 else:
-                    _time = int(arrow.get(c["time"]).timestamp)
+                    _time = int(arrow.get(c["time"]).int_timestamp)
                     if timestamp_units == "s":
-                        _time = int(_time * 1e3)
+                        _time = int(_time * 1_000)
                     del c["time"]  # don't try to add it as a tag
 
                 tags = {"symbol": self.symbol, "interval": self.interval}
@@ -216,8 +216,8 @@ class BaseSyncCandles(object):
             return start, end
         diff = (end - start) / steps
         for i in range(steps):
-            yield int((start + diff * i).timestamp)
-        yield int(end.timestamp)
+            yield int((start + diff * i).int_timestamp)
+        yield int(end.int_timestamp)
 
     def sync(
         self,
@@ -313,11 +313,11 @@ class BaseSyncCandles(object):
             formatted_start = start  # formatted for exchange API calls
             formatted_end = end
             if timestamp_units == "ms":
-                formatted_start *= 1e3
-                formatted_end *= 1e3
+                formatted_start *= 1_000
+                formatted_end *= 1_000
             elif timestamp_units == "us":
-                formatted_start *= 1e6
-                formatted_end *= 1e6
+                formatted_start *= 1_000_000
+                formatted_end *= 1_000_000
             params = {
                 "limit": self.API_MAX_RECORDS,
                 start_format: int(formatted_start),
@@ -375,8 +375,8 @@ class SyncSFOXCandles(BaseSyncCandles):
     """Sync candles for SFOX"""
 
     DEFAULT_SYNC_DAYS = 90
-    API_MAX_RECORDS = 1000
-    API_CALLS_PER_MIN = 100000 if IS_PYTEST else 1200
+    API_MAX_RECORDS = 1_000
+    API_CALLS_PER_MIN = 100_000 if IS_PYTEST else 1200
     EXCHANGE = "sfox"
 
     def api_client(self):
@@ -416,8 +416,8 @@ class SyncBinanceCandles(BaseSyncCandles):
     """Sync candles for Binance"""
 
     DEFAULT_SYNC_DAYS = 90
-    API_MAX_RECORDS = 10000
-    API_CALLS_PER_MIN = 100000 if IS_PYTEST else 1200
+    API_MAX_RECORDS = 10_000
+    API_CALLS_PER_MIN = 100_000 if IS_PYTEST else 1200
     EXCHANGE = "binance"
 
     def api_client(self):
@@ -454,8 +454,8 @@ class SyncBitfinexCandles(BaseSyncCandles):
     """Sync candles for Bitfinex"""
 
     DEFAULT_SYNC_DAYS = 90
-    API_MAX_RECORDS = 10000
-    API_CALLS_PER_MIN = 100000 if IS_PYTEST else 90
+    API_MAX_RECORDS = 10_000
+    API_CALLS_PER_MIN = 100_000 if IS_PYTEST else 90
     EXCHANGE = "bitfinex"
     PERIODS = [f"p{n}" for n in range(2, 31)]
 
@@ -482,8 +482,8 @@ class SyncBitfinexCandles(BaseSyncCandles):
             latest = self.influx_client.query(query + " ORDER BY time DESC LIMIT 1")
             earliest = self.influx_client.query(query + " ORDER BY time ASC LIMIT 1")
 
-        earliest = arrow.get(list(earliest)[0][0]["time"] / 1000).timestamp if earliest else 0
-        latest = arrow.get(list(latest)[0][0]["time"] / 1000).timestamp if latest else 0
+        earliest = arrow.get(list(earliest)[0][0]["time"] / 1_000).int_timestamp if earliest else 0
+        latest = arrow.get(list(latest)[0][0]["time"] / 1_000).int_timestamp if latest else 0
         return earliest, latest
 
     @sleep_and_retry
